@@ -14,9 +14,9 @@ A lightweight service (Python + SQLite, ~40 MB RAM) that:
 - **ISP** — detects the current internet provider (name, AS number, public IP, city) every 10 min and after each speedtest. History of ISP and IP changes, ISP in the series table, Telegram alert on change (handy with a backup uplink).
 - **WireGuard** — a tab to manage profiles: add (paste / upload a `.conf`, or use the wizard with key generation), edit, bring tunnels up/down, autostart, delete. Status (handshake, traffic) is also on the Overview.
 - **Network map** — a tab with a tree of the devices on your local network: Internet → router → switches / access points → devices. Every device is clickable (IP, MAC, vendor, name, connection, its own events). The map is editable: drag devices, change what they are connected to, their type and network segment, delete them or add your own. A device going offline is written to the map log (kept for 400 days); after 7 days offline it is removed from the map (never the router or Molfar itself). The Overview has a *Local network* card; Telegram can optionally alert about new devices.
-- **Wi-Fi ефір** — сканує сусідні Wi-Fi мережі, малює спектр і водоспад (де ефір чистий / зашумлений) і радить оптимальний канал для роутера в 2.4 і 5 ГГц. Картка на «Огляді» показує найчистіші канали.
-- **Дві мови** — українська та англійська (перемикач UK/EN у шапці або «Налаштування → Загальне»). Мова діє на веб-інтерфейс, Telegram-сповіщення та журнал.
-- Веб-інтерфейс з паролем (змінюється прямо в налаштуваннях), адаптований під телефон, світла й темна теми.
+- **Wi-Fi air** — scans nearby Wi-Fi networks, draws a spectrum and a waterfall (where the air is clean / noisy) and recommends the best router channel for 2.4 and 5 GHz. An Overview card shows the cleanest channels.
+- **Two languages** — Ukrainian and English (UK/EN switch in the header or *Settings → General*). The language applies to the web UI, Telegram alerts and the event log.
+- Password-protected web UI (password can be changed in Settings), mobile-friendly, light and dark themes.
 
 ## Installation
 
