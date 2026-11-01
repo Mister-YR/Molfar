@@ -1,0 +1,73 @@
+BSS 04:d4:c4:1a:2b:3c(on wlan0) -- associated
+	last seen: 1093.215s [boottime]
+	TSF: 2190462021 usec (0d, 00:36:30)
+	freq: 2437.0
+	beacon interval: 100 TUs
+	capability: ESS Privacy ShortSlotTime RadioMeasure (0x1411)
+	signal: -41.00 dBm
+	last seen: 120 ms ago
+	Information elements from Probe Response frame:
+	SSID: Home_Olena
+	Supported rates: 1.0* 2.0* 5.5* 11.0* 6.0 9.0 12.0 18.0 
+	DS Parameter set: channel 6
+	ERP: <no flags>
+	Extended supported rates: 24.0 36.0 48.0 54.0 
+	RSN:	 * Version: 1
+		 * Group cipher: CCMP
+		 * Pairwise ciphers: CCMP
+		 * Authentication suites: PSK SAE
+		 * Capabilities: 1-PTKSA-RC 1-GTKSA-RC MFP-capable (0x0080)
+	HT capabilities:
+		Capabilities: 0x1ad
+			RX LDPC
+			HT20
+	HT operation:
+		 * primary channel: 6
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+	HE capabilities:
+		HE MAC Capabilities (0x000801185018):
+BSS 5c:62:8b:aa:01:02(on wlan0)
+	freq: 2412
+	capability: ESS Privacy ShortSlotTime (0x0411)
+	signal: -67.00 dBm
+	last seen: 800 ms ago
+	SSID: \xd0\x9a\xd0\xb8\xd1\x97\xd0\xb2\xd1\x81\xd1\x82\xd0\xb0\xd1\x80
+	DS Parameter set: channel 1
+	RSN:	 * Version: 1
+		 * Group cipher: CCMP
+		 * Pairwise ciphers: CCMP
+		 * Authentication suites: PSK
+	HT operation:
+		 * primary channel: 1
+		 * secondary channel offset: above
+		 * STA channel width: any
+BSS 60:a4:b7:00:11:22(on wlan0)
+	freq: 5180.0
+	capability: ESS Privacy SpectrumMgmt ShortSlotTime (0x0511)
+	signal: -58.00 dBm
+	last seen: 300 ms ago
+	SSID: TP-Link_5G_77
+	RSN:	 * Version: 1
+		 * Group cipher: CCMP
+		 * Pairwise ciphers: CCMP
+		 * Authentication suites: SAE
+	HT operation:
+		 * primary channel: 36
+		 * secondary channel offset: above
+		 * STA channel width: any
+	VHT operation:
+		 * channel width: 1 (80 MHz)
+		 * center freq segment 1: 42
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+BSS 60:a4:b7:00:11:33(on wlan0)
+	freq: 5500
+	capability: ESS (0x0001)
+	signal: -80.00 dBm
+	last seen: 300 ms ago
+	SSID: 
+	VHT operation:
+		 * channel width: 1 (80 MHz)
+		 * center freq segment 1: 106
+		 * center freq segment 2: 114

@@ -1,0 +1,53 @@
+# Мольфар у Docker — для ВМ / сервера x86_64 або ARM64.
+#   cp .env.example .env    # пароль, порт, часовий пояс
+#   docker compose up -d --build
+# Веб-інтерфейс: http://<IP ВМ>:8080  (логін admin, пароль з .env)
+name: molfar
+
+services:
+  molfar:
+    build:
+      context: .
+      args:
+        EXTRA_TOOLS: ${EXTRA_TOOLS:-1}     # 0 — без dig/mtr/iperf3/tcpdump… (менший образ)
+    image: ${MOLFAR_IMAGE:-molfar:latest}
+    container_name: molfar
+    restart: unless-stopped
+    init: true                             # tini як PID 1: збирає процеси таймерів відкату WireGuard
+
+    # Мережа хоста: потрібна для мапи LAN (arp-scan), IP-адрес і маршруту за замовчуванням,
+    # чесного пінгу без NAT Docker і WireGuard-тунелів. Порт задається MOLFAR_PORT (секція ports не діє).
+    network_mode: host
+
+    # Лише потрібні можливості замість privileged:
+    #   NET_RAW   — ping, arp-scan
+    #   NET_ADMIN — WireGuard (ip link / wg / nft), сканування Wi-Fi (iw)
+    cap_drop: [ALL]
+    cap_add: [NET_RAW, NET_ADMIN]
+    # privileged: true                     # лише якщо щось не працює з обмеженими правами
+
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TZ: ${TZ:-Europe/Kyiv}
+      MOLFAR_USER: ${MOLFAR_USER:-admin}
+      MOLFAR_PASSWORD: ${MOLFAR_PASSWORD:-Molfar}
+      MOLFAR_PORT: ${MOLFAR_PORT:-8080}
+      MOLFAR_HOST: ${MOLFAR_HOST:-0.0.0.0}
+      MOLFAR_LOG: ${MOLFAR_LOG:-INFO}
+      MOLFAR_WG_AUTOSTART: ${MOLFAR_WG_AUTOSTART:-1}
+      MOLFAR_IP_FORWARD: ${MOLFAR_IP_FORWARD:-1}     # перевіряти пересилання IPv4 (VPN → LAN), див. DOCKER.md
+
+    volumes:
+      - ./data:/var/lib/molfar             # база molfar.db (історія, налаштування)
+      - ./wireguard:/etc/wireguard         # профілі WireGuard, керовані з веб-інтерфейсу
+      # mDNS-імена пристроїв на мапі (iPhone, принтери, NAS) — якщо на хості працює avahi-daemon:
+      # - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro
+
+    stop_grace_period: 30s                 # час, щоб коректно опустити тунелі
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

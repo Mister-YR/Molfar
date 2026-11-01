@@ -1,0 +1,119 @@
+#!/usr/bin/python3 -I
+"""molfar-wifi — привілейований помічник Мольфара для сканування Wi-Fi ефіру.
+
+Запускається веб-сервісом через `sudo -n` (див. /etc/sudoers.d/molfar). Лише ЧИТАЄ ефір:
+жодних підключень, змін каналу, ключів чи налаштувань мережі.
+
+  molfar-wifi scan IFACE      активне сканування (iw scan) + survey dump
+
+Якщо інтерфейс вимкнений (DOWN), помічник вмикає його на час сканування і потім вимикає назад.
+Відповідь — JSON у stdout; код виходу 0 (ok) або 1 (помилка з полем "code").
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+os.environ["PATH"] = "/usr/sbin:/usr/bin:/sbin:/bin"
+os.environ["LC_ALL"] = "C"
+IFACE_RE = re.compile(r"^[A-Za-z0-9._-]{1,15}$")
+MAX_OUT = 4 * 1024 * 1024
+
+
+class Fail(Exception):
+    def __init__(self, code, **kw):
+        super().__init__(code)
+        self.code, self.kw = code, kw
+
+
+def out(obj, code=0):
+    print(json.dumps(obj, ensure_ascii=False))
+    sys.exit(code)
+
+
+def run(args, timeout=30):
+    try:
+        p = subprocess.run(args, capture_output=True, timeout=timeout)
+    except FileNotFoundError:
+        raise Fail("no_iw")
+    except subprocess.TimeoutExpired:
+        raise Fail("timeout")
+    return p.returncode, p.stdout[:MAX_OUT].decode(errors="replace"), p.stderr.decode(errors="replace").strip()
+
+
+def is_up(iface):
+    try:
+        with open(f"/sys/class/net/{iface}/flags") as f:
+            return bool(int(f.read().strip(), 16) & 0x1)
+    except (OSError, ValueError):
+        return False
+
+
+def iface_type(iface):
+    rc, o, _ = run(["iw", "dev", iface, "info"], 10)
+    m = re.search(r"^\s*type\s+(\S+)", o, re.M) if rc == 0 else None
+    return m.group(1).lower() if m else ""
+
+
+def cmd_scan(iface):
+    if not IFACE_RE.match(iface) or not os.path.isdir(f"/sys/class/net/{iface}"):
+        raise Fail("no_iface", iface=iface)
+    if not (os.path.exists(f"/sys/class/net/{iface}/wireless") or os.path.exists(f"/sys/class/net/{iface}/phy80211")):
+        raise Fail("not_wireless", iface=iface)
+    brought_up = False
+    if not is_up(iface):
+        rc, _, e = run(["ip", "link", "set", iface, "up"], 10)
+        if rc != 0:
+            raise Fail("rfkill" if "rf-kill" in e.lower() or "rfkill" in e.lower() else "up_failed", err=e[:300])
+        brought_up = True
+        time.sleep(1.5)
+    try:
+        args = ["iw", "dev", iface, "scan"]
+        if iface_type(iface) == "ap":
+            args.append("ap-force")  # інтерфейс у режимі точки доступу
+        scan, cached, last_err = "", False, ""
+        for attempt in range(4):
+            rc, o, e = run(args, 30)
+            if rc == 0:
+                scan = o
+                break
+            last_err = e
+            if "busy" in e.lower() or "(-16)" in e:   # драйвер саме сканує (wpa_supplicant) — зачекати
+                time.sleep(2 + attempt)
+                continue
+            break
+        else:
+            rc = 1
+        if not scan:
+            # активне сканування недоступне — беремо останні результати з кешу ядра
+            rc2, o2, _ = run(["iw", "dev", iface, "scan", "dump"], 15)
+            if rc2 == 0 and o2.strip():
+                scan, cached = o2, True
+            elif "operation not supported" in last_err.lower() or "(-95)" in last_err:
+                raise Fail("not_supported", err=last_err[:300])
+            elif "network is down" in last_err.lower() or "(-100)" in last_err:
+                raise Fail("down", err=last_err[:300])
+            else:
+                raise Fail("scan_failed", err=last_err[:300] or "empty")
+        rc, survey, _ = run(["iw", "dev", iface, "survey", "dump"], 10)
+        if rc != 0:
+            survey = ""
+    finally:
+        if brought_up:
+            run(["ip", "link", "set", iface, "down"], 10)
+    out({"ok": True, "scan": scan, "survey": survey, "cached": cached, "brought_up": brought_up})
+
+
+def main(argv):
+    if len(argv) == 2 and argv[0] == "scan":
+        return cmd_scan(argv[1])
+    raise Fail("usage")
+
+
+if __name__ == "__main__":
+    try:
+        main(sys.argv[1:])
+    except Fail as f:
+        out({"ok": False, "code": f.code, **f.kw}, 1)

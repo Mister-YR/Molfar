@@ -1,0 +1,27 @@
+#!/bin/sh
+# Обгортка sysctl для контейнера Мольфара (лежить у /usr/local/sbin, тобто раніше за /usr/sbin у PATH).
+#
+# wg-quick для повного тунелю (AllowedIPs = 0.0.0.0/0) завжди виконує
+#   sysctl -q net.ipv4.conf.all.src_valid_mark=1
+# а в непривілейованому контейнері /proc/sys доступний лише для читання. Якщо значення вже
+# виставлене на хості — нічого не робимо й повертаємо успіх; інакше пробуємо справжній sysctl
+# і підказуємо, що виставити на хості.
+REAL=/usr/sbin/sysctl
+for a in "$@"; do
+  case "$a" in
+    -*) ;;
+    *=*)
+      key=${a%%=*}; want=${a#*=}
+      f=/proc/sys/$(printf '%s' "$key" | tr . /)
+      have=$(cat "$f" 2>/dev/null) || have=
+      [ "$have" = "$want" ] && continue
+      if ! "$REAL" -q "$a" 2>/dev/null; then
+        echo "molfar: не вдалося виставити $key=$want (у контейнері /proc/sys лише для читання)." >&2
+        echo "molfar: виконайте на хості:  echo '$key=$want' | sudo tee /etc/sysctl.d/90-molfar.conf && sudo sysctl --system" >&2
+        exit 1
+      fi
+      ;;
+    *) exec "$REAL" "$@" ;;   # читання значення тощо — як звичайний sysctl
+  esac
+done
+exit 0

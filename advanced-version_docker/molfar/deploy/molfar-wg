@@ -1,0 +1,417 @@
+#!/usr/bin/python3 -I
+"""molfar-wg — привілейований помічник Мольфара для керування WireGuard-профілями.
+
+Запускається веб-сервісом через `sudo -n` (див. /etc/sudoers.d/molfar). Це межа довіри:
+усі аргументи та конфігурації перевіряються ТУТ, а не лише у веб-сервісі.
+
+  molfar-wg list
+  molfar-wg get NAME                       конфіг (PrivateKey прихований)
+  molfar-wg put NAME [--create] [--rollback SEC]   конфіг зі stdin
+  molfar-wg delete NAME
+  molfar-wg up NAME [--rollback SEC]       увімкнути; без підтвердження вимкнеться через SEC с
+  molfar-wg down NAME | enable NAME | disable NAME | confirm NAME
+
+Відповідь — JSON у stdout; код виходу 0 (ok) або 1 (помилка з полем "code").
+Заборонено PreUp/PostUp/PreDown/PostDown/SaveConfig: вони виконують команди від root.
+"""
+import ipaddress
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+WG_DIR = "/etc/wireguard"
+SYSTEMCTL = "/usr/bin/systemctl"
+SYSTEMD_RUN = "/usr/bin/systemd-run"
+JOURNALCTL = "/usr/bin/journalctl"
+WG = "/usr/bin/wg"
+MAX_SIZE = 16384
+HIDDEN = "<hidden>"
+
+NAME_RE = re.compile(r"^[A-Za-z0-9_=+][A-Za-z0-9_=+.-]{0,14}$")
+KEY_RE = re.compile(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=$")
+HOST_RE = re.compile(r"^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$")
+
+FORBIDDEN = {"preup", "postup", "predown", "postdown", "saveconfig"}
+CANON = {  # нижній регістр -> канонічна назва
+    "privatekey": "PrivateKey", "address": "Address", "listenport": "ListenPort", "dns": "DNS",
+    "mtu": "MTU", "table": "Table", "fwmark": "FwMark", "publickey": "PublicKey",
+    "presharedkey": "PresharedKey", "allowedips": "AllowedIPs", "endpoint": "Endpoint",
+    "persistentkeepalive": "PersistentKeepalive",
+}
+ALLOWED = {
+    "interface": {"privatekey", "address", "listenport", "dns", "mtu", "table", "fwmark"},
+    "peer": {"publickey", "presharedkey", "allowedips", "endpoint", "persistentkeepalive"},
+}
+
+
+class Fail(Exception):
+    def __init__(self, code, **kw):
+        super().__init__(code)
+        self.code, self.kw = code, kw
+
+
+def out(obj, code=0):
+    print(json.dumps(obj, ensure_ascii=False))
+    sys.exit(code)
+
+
+# ---------------- перевірка значень ----------------
+def _int(v, lo, hi):
+    if not v.isdigit() or not lo <= int(v) <= hi:
+        raise ValueError
+    return v
+
+
+def _list(v, fn):
+    items = [x.strip() for x in v.split(",")]
+    if not all(items):
+        raise ValueError
+    for x in items:
+        fn(x)
+    return ", ".join(items)
+
+
+def _endpoint(v):
+    m = re.match(r"^\[([0-9A-Fa-f:.]+)\]:(\d{1,5})$", v) or re.match(r"^([^:\[\]]+):(\d{1,5})$", v)
+    if not m:
+        raise ValueError
+    host, port = m.groups()
+    _int(port, 1, 65535)
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        if not HOST_RE.match(host):
+            raise
+    return v
+
+
+def _dns_item(x):
+    try:
+        ipaddress.ip_address(x)
+    except ValueError:
+        if not HOST_RE.match(x):  # пошуковий домен
+            raise
+
+
+def _fwmark(v):
+    if v != "off" and not re.match(r"^(0x[0-9a-fA-F]{1,8}|\d{1,10})$", v):
+        raise ValueError
+    return v
+
+
+def _key(v):
+    if not KEY_RE.match(v):
+        raise ValueError
+    return v
+
+
+VALIDATORS = {
+    "privatekey": _key, "publickey": _key, "presharedkey": _key,
+    "address": lambda v: _list(v, lambda x: ipaddress.ip_interface(x)),
+    "allowedips": lambda v: _list(v, lambda x: ipaddress.ip_network(x, strict=False)),
+    "dns": lambda v: _list(v, _dns_item),
+    "mtu": lambda v: _int(v, 576, 9000),
+    "listenport": lambda v: _int(v, 1, 65535),
+    "persistentkeepalive": lambda v: v if v == "off" else _int(v, 0, 65535),
+    "table": lambda v: v if v in ("off", "auto") else _int(v, 0, 4294967295),
+    "fwmark": _fwmark,
+    "endpoint": _endpoint,
+}
+
+
+def parse(text, strict=True):
+    """Повертає (нормалізований текст, інфо). strict=False — лише для читання (list/get)."""
+    if len(text.encode()) > MAX_SIZE or "\x00" in text:
+        raise Fail("too_big")
+    section, out_lines = None, []
+    info = {"interfaces": 0, "peers": 0, "privatekey": None, "address": None,
+            "endpoints": [], "allowedips": [], "dns": [], "forbidden": []}
+    for n, raw in enumerate(text.splitlines(), 1):
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            if raw.strip().startswith("#"):
+                out_lines.append(raw.rstrip())
+            elif out_lines and out_lines[-1] != "":
+                out_lines.append("")
+            continue
+        m = re.match(r"^\[(\w+)\]$", line)
+        if m:
+            section = m.group(1).lower()
+            if section not in ALLOWED:
+                raise Fail("bad_section", line=n)
+            info["interfaces" if section == "interface" else "peers"] += 1
+            if out_lines and out_lines[-1] != "":
+                out_lines.append("")
+            out_lines.append("[Interface]" if section == "interface" else "[Peer]")
+            continue
+        if "=" not in line:
+            raise Fail("bad_line", line=n)
+        k, v = (x.strip() for x in line.split("=", 1))
+        kl = k.lower()
+        if kl in FORBIDDEN:
+            info["forbidden"].append(k)
+            if strict:
+                raise Fail("forbidden_key", key=k, line=n)
+            continue
+        if section is None:
+            raise Fail("no_section", line=n)
+        if kl not in ALLOWED[section]:
+            if strict:
+                raise Fail("bad_key", key=k, line=n)
+            continue
+        if strict and not (kl == "privatekey" and v == HIDDEN):
+            try:
+                v = VALIDATORS[kl](v)
+            except (ValueError, TypeError):
+                raise Fail("bad_value", key=CANON[kl], line=n)
+        if kl == "privatekey":
+            info["privatekey"] = v
+        elif kl == "address":
+            info["address"] = v
+        elif kl == "dns":
+            info["dns"] += [x.strip() for x in v.split(",") if x.strip()]
+        elif kl == "endpoint":
+            info["endpoints"].append(v)
+        elif kl == "allowedips":
+            info["allowedips"] += [x.strip() for x in v.split(",")]
+        out_lines.append(f"{CANON[kl]} = {v}")
+    if strict:
+        if info["interfaces"] != 1:
+            raise Fail("need_interface")
+        if not info["privatekey"]:
+            raise Fail("need_privatekey")
+    while out_lines and out_lines[-1] == "":
+        out_lines.pop()
+    return "\n".join(out_lines) + "\n", info
+
+
+# ---------------- системні виклики ----------------
+def run(args, inp=None, timeout=60):
+    try:
+        p = subprocess.run(args, input=inp, capture_output=True, text=True, timeout=timeout)
+        return p.returncode, p.stdout.strip(), p.stderr.strip()
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 1, "", str(e)
+
+
+def unit(name):
+    return f"wg-quick@{name}.service"
+
+
+def rb_unit(name):
+    return f"molfar-wg-rollback-{name}"
+
+
+def is_active(name):
+    return run([SYSTEMCTL, "is-active", unit(name)], timeout=10)[1] == "active"
+
+
+def is_enabled(name):
+    return run([SYSTEMCTL, "is-enabled", unit(name)], timeout=10)[1] == "enabled"
+
+
+def rollback_pending(name):
+    return run([SYSTEMCTL, "is-active", rb_unit(name) + ".timer"], timeout=10)[1] == "active"
+
+
+def cancel_rollback(name):
+    run([SYSTEMCTL, "stop", rb_unit(name) + ".timer"], timeout=15)
+    run([SYSTEMCTL, "reset-failed", rb_unit(name) + ".timer", rb_unit(name) + ".service"], timeout=15)
+
+
+def arm_rollback(name, sec):
+    cancel_rollback(name)
+    if sec <= 0:
+        return 0
+    rc, o, e = run([SYSTEMD_RUN, f"--unit={rb_unit(name)}", f"--on-active={sec}",
+                    "--timer-property=AccuracySec=1s", "--description=Molfar WireGuard rollback",
+                    SYSTEMCTL, "stop", unit(name)], timeout=15)
+    return sec if rc == 0 else 0
+
+
+def journal_tail(name):
+    return run([JOURNALCTL, "-u", unit(name), "-n", "12", "--no-pager", "-o", "cat"], timeout=15)[1][-1500:]
+
+
+def pubkey(priv):
+    if not priv or not KEY_RE.match(priv):
+        return None
+    rc, o, _ = run([WG, "pubkey"], inp=priv + "\n", timeout=10)
+    return o if rc == 0 else None
+
+
+def path_of(name):
+    if not NAME_RE.match(name or ""):
+        raise Fail("bad_name")
+    return os.path.join(WG_DIR, name + ".conf")
+
+
+def read(name):
+    p = path_of(name)
+    if not os.path.isfile(p) or os.path.islink(p):
+        raise Fail("not_found")
+    with open(p, encoding="utf-8", errors="replace") as f:
+        return f.read()
+
+
+def write_atomic(p, text):
+    os.makedirs(WG_DIR, mode=0o700, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=WG_DIR, prefix=".molfar-")
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, p)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+
+
+def start(name, rollback):
+    run([SYSTEMCTL, "reset-failed", unit(name)], timeout=15)
+    rc, o, e = run([SYSTEMCTL, "restart" if is_active(name) else "start", unit(name)], timeout=60)
+    if rc != 0:
+        raise Fail("start_failed", log=journal_tail(name) or e)
+    return arm_rollback(name, rollback)
+
+
+# ---------------- команди ----------------
+def cmd_list():
+    res = []
+    if os.path.isdir(WG_DIR):
+        for fn in sorted(os.listdir(WG_DIR)):
+            if not fn.endswith(".conf") or not NAME_RE.match(fn[:-5]):
+                continue
+            name = fn[:-5]
+            try:
+                _, info = parse(read(name), strict=False)
+            except Fail:
+                continue
+            res.append({
+                "name": name, "active": is_active(name), "enabled": is_enabled(name),
+                "rollback": rollback_pending(name), "editable": not info["forbidden"],
+                "forbidden": info["forbidden"], "address": info["address"],
+                "endpoints": info["endpoints"], "allowed_ips": info["allowedips"], "dns": info["dns"],
+                "peers": info["peers"], "public_key": pubkey(info["privatekey"]),
+            })
+    out({"ok": True, "profiles": res})
+
+
+def cmd_get(name):
+    text = read(name)
+    hidden = re.sub(r"(?im)^(\s*PrivateKey\s*=\s*)\S+", lambda m: m.group(1) + HIDDEN, text)
+    _, info = parse(text, strict=False)
+    out({"ok": True, "name": name, "config": hidden, "editable": not info["forbidden"],
+         "forbidden": info["forbidden"]})
+
+
+def cmd_put(name, create, rollback):
+    p = path_of(name)
+    exists = os.path.isfile(p)
+    if create and exists:
+        raise Fail("exists")
+    if not create and not exists:
+        raise Fail("not_found")
+    text = sys.stdin.read(MAX_SIZE + 1)
+    if exists:
+        old = read(name)
+        if parse(old, strict=False)[1]["forbidden"]:
+            raise Fail("not_editable")
+        m = re.search(r"(?im)^\s*PrivateKey\s*=\s*(\S+)", old)
+        if m:  # «<hidden>» — залишити попередній ключ
+            text = re.sub(r"(?im)^(\s*PrivateKey\s*=\s*)<hidden>\s*$", lambda x: x.group(1) + m.group(1), text)
+    if re.search(r"(?im)^\s*PrivateKey\s*=\s*<hidden>", text):
+        raise Fail("need_privatekey")
+    norm, info = parse(text, strict=True)
+    if exists:
+        write_atomic(p + ".bak", read(name))
+    write_atomic(p, norm)
+    restarted, armed = False, 0
+    if exists and is_active(name):
+        armed = start(name, rollback)
+        restarted = True
+    out({"ok": True, "name": name, "restarted": restarted, "rollback": armed})
+
+
+def cmd_delete(name):
+    p = path_of(name)
+    if not os.path.isfile(p):
+        raise Fail("not_found")
+    cancel_rollback(name)
+    run([SYSTEMCTL, "stop", unit(name)], timeout=60)
+    run([SYSTEMCTL, "disable", unit(name)], timeout=30)
+    os.unlink(p)
+    if os.path.isfile(p + ".bak"):
+        os.unlink(p + ".bak")
+    out({"ok": True})
+
+
+def cmd_up(name, rollback):
+    read(name)
+    out({"ok": True, "rollback": start(name, rollback)})
+
+
+def cmd_down(name):
+    read(name)
+    cancel_rollback(name)
+    rc, o, e = run([SYSTEMCTL, "stop", unit(name)], timeout=60)
+    if rc != 0:
+        raise Fail("stop_failed", log=e)
+    out({"ok": True})
+
+
+def cmd_enable(name, on):
+    read(name)
+    rc, o, e = run([SYSTEMCTL, "enable" if on else "disable", unit(name)], timeout=30)
+    if rc != 0:
+        raise Fail("systemctl_failed", log=e)
+    out({"ok": True})
+
+
+def cmd_confirm(name):
+    path_of(name)
+    cancel_rollback(name)
+    out({"ok": True})
+
+
+def main(argv):
+    if not argv:
+        raise Fail("usage")
+    cmd, args = argv[0], argv[1:]
+    rollback = 0
+    if "--rollback" in args:
+        i = args.index("--rollback")
+        try:
+            rollback = max(0, min(600, int(args[i + 1])))
+        except (IndexError, ValueError):
+            raise Fail("usage")
+        del args[i:i + 2]
+    create = "--create" in args
+    args = [a for a in args if a != "--create"]
+    if cmd == "list" and not args:
+        return cmd_list()
+    if len(args) != 1:
+        raise Fail("usage")
+    name = args[0]
+    path_of(name)
+    handlers = {
+        "get": lambda: cmd_get(name), "put": lambda: cmd_put(name, create, rollback),
+        "delete": lambda: cmd_delete(name), "up": lambda: cmd_up(name, rollback),
+        "down": lambda: cmd_down(name), "enable": lambda: cmd_enable(name, True),
+        "disable": lambda: cmd_enable(name, False), "confirm": lambda: cmd_confirm(name),
+    }
+    if cmd not in handlers:
+        raise Fail("usage")
+    handlers[cmd]()
+
+
+if __name__ == "__main__":
+    os.umask(0o077)
+    try:
+        main(sys.argv[1:])
+    except Fail as f:
+        out({"ok": False, "code": f.code, **f.kw}, 1)

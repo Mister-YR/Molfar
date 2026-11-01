@@ -1,0 +1,102 @@
+/* Вкладка «Wi-Fi ефір» */
+#tab-wifi .toolbar h2 { margin-bottom: 2px; }
+#wf-notice > * { margin-bottom: 12px; }
+.wf-empty p { margin: 0; color: var(--muted); }
+.wf-plot { position: relative; width: 100%; overflow: hidden; touch-action: pan-y; }
+.wf-plot svg, .wf-plot canvas { display: block; }
+
+/* рекомендація */
+.wf-rec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.wf-rec-band { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); min-width: 0; }
+.wf-rec-h { font-weight: 600; }
+.wf-rec-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.wf-rec-ch { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.wf-cur { font-size: 13px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); }
+.wf-cur.ok { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+.wf-cur.warn { border-color: color-mix(in srgb, var(--warn) 50%, var(--border)); }
+.wf-ranks { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.wf-rank { display: grid; grid-template-columns: minmax(136px, max-content) 1fr 28px; align-items: center; gap: 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.wf-rank.best .wf-rank-l { font-weight: 700; }
+.wf-rank-bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.wf-rank-bar i { display: block; height: 100%; border-radius: 4px; }
+.wf-rank-bar i.ok, .wf-grad-ok { background: var(--ok); }
+.wf-rank-bar i.warn { background: var(--warn); }
+.wf-rank-bar i.bad { background: var(--bad); }
+.wf-rank-v { text-align: right; color: var(--muted); }
+.wf-rank .badge { padding: 0 5px; font-size: 10px; }
+.wf-how { margin-top: 12px; }
+
+/* спектр */
+.wf-grid line { stroke: var(--border); stroke-width: 1; }
+.wf-grid line.wf-base { stroke: var(--muted); opacity: .6; }
+.wf-grid text, .wf-chl { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.wf-chl.cur { fill: var(--text); font-weight: 700; }
+.wf-unit { font-size: 10px; }
+.wf-hump { fill: var(--muted); fill-opacity: .07; stroke: var(--muted); stroke-opacity: .55; stroke-width: 1.25; stroke-linejoin: round; transition: fill-opacity .12s, stroke-opacity .12s; }
+.wf-hump.mine { fill: var(--accent); fill-opacity: .16; stroke: var(--accent); stroke-opacity: 1; stroke-width: 2; }
+.wf-hump.sel { fill: var(--c2); fill-opacity: .22; stroke: var(--c2); stroke-opacity: 1; stroke-width: 2; }
+.wf-labels text { fill: var(--muted); font-size: 11px; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round; }
+.wf-labels text.mine { fill: var(--text); font-weight: 700; }
+.wf-labels text.sel { fill: var(--text); }
+.wf-recband { fill: var(--ok); fill-opacity: .07; stroke: var(--ok); stroke-opacity: .5; stroke-dasharray: 3 3; }
+.wf-rectext { fill: var(--text); font-size: 11px; font-weight: 700; }
+.wf-cell { stroke: var(--panel); stroke-width: 1; }
+.wf-cell.ok { fill: color-mix(in srgb, var(--ok) 55%, var(--panel)); }
+.wf-cell.warn { fill: color-mix(in srgb, var(--warn) 60%, var(--panel)); }
+.wf-cell.bad { fill: color-mix(in srgb, var(--bad) 65%, var(--panel)); }
+.wf-cell.off { fill: var(--panel-2); stroke: var(--border); stroke-dasharray: 2 2; }
+.wf-cell.best { stroke: var(--text); stroke-width: 2; }
+.wf-cellv { fill: var(--text); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
+.wf-curmark { fill: var(--accent); }
+
+/* DFS */
+.wf-hatchline { stroke: var(--warn); stroke-width: 1.2; stroke-opacity: .28; }
+.wf-dfsline { fill: none; stroke-width: 1.5; }
+.wf-dfsline.dfs { stroke: var(--warn); stroke-dasharray: 4 3; }
+.wf-dfsline.nodfs { stroke: var(--muted); }
+.wf-dfstxt { font-size: 11px; font-weight: 600; }
+.wf-dfstxt.dfs { fill: var(--text); }
+.wf-dfstxt.nodfs { fill: var(--muted); }
+.badge.dfs { color: var(--text); border-color: color-mix(in srgb, var(--warn) 55%, var(--border)); border-style: dashed; }
+.badge.nodfs { color: var(--muted); }
+.wf-rec-main .badge.dfs, .wf-rec-main .badge.nodfs { font-size: 11px; }
+.wf-legend .sq.hatch { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--warn) 45%, transparent) 0 1.5px, transparent 1.5px 5px); border: 1px solid var(--border); }
+.wf-dfs-note { margin-top: 6px; }
+.wf-table td .badge.dfs { padding: 0 5px; font-size: 10px; }
+
+.wf-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.wf-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.wf-legend .sw { width: 16px; height: 0; border-top: 2px solid var(--muted); display: inline-block; }
+.wf-legend .sw.mine { border-color: var(--accent); }
+.wf-legend .sw.recb { border-top: 2px dashed var(--ok); }
+.wf-legend .sq { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.wf-legend .sq.ok { background: color-mix(in srgb, var(--ok) 55%, var(--panel)); }
+.wf-legend .sq.warn { background: color-mix(in srgb, var(--warn) 60%, var(--panel)); }
+.wf-legend .sq.bad { background: color-mix(in srgb, var(--bad) 65%, var(--panel)); }
+.wf-grad { width: 120px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--panel-2), var(--bad)); border: 1px solid var(--border); }
+.wf-period { margin-top: 10px; font-size: 13px; }
+
+.wf-tip {
+  position: absolute; z-index: 5; pointer-events: none; max-width: 280px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .3); font-size: 12px;
+}
+.wf-tip .kv { grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; margin-top: 6px; }
+.wf-tip .kv dd { overflow-wrap: anywhere; }
+
+/* таблиця мереж */
+.wf-table tr.mine td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.wf-table tr.sel td { background: color-mix(in srgb, var(--c2) 12%, transparent); }
+.wf-table tbody tr { cursor: pointer; }
+.wf-bars { display: inline-flex; align-items: flex-end; gap: 1px; height: 15px; vertical-align: -2px; margin-right: 4px; }
+.wf-bars i { width: 3px; border-radius: 1px; background: var(--border); }
+.wf-bars i.on { background: var(--text); }
+
+/* плитка «Огляду» */
+.wf-tile .badge { margin-top: 2px; }
+@media (max-width: 560px) {
+  .wf-rec-ch { font-size: 22px; }
+  #tab-wifi .toolbar-right { width: 100%; justify-content: space-between; }
+}
+
+#tab-wifi .card-head { flex-wrap: wrap; }

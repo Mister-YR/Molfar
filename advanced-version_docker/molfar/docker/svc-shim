@@ -1,0 +1,260 @@
+#!/usr/bin/python3 -I
+"""svc-shim — мінімальна заміна systemctl / systemd-run / journalctl для контейнера Мольфара.
+
+У контейнері немає systemd, а помічник /usr/local/sbin/molfar-wg керує тунелями через
+`systemctl start wg-quick@NAME`, таймери відкату — через `systemd-run --on-active=SEC`,
+а журнал читає `journalctl -u`. Цей скрипт встановлено як /usr/bin/systemctl,
+/usr/bin/systemd-run і /usr/bin/journalctl; він підтримує лише ті виклики, які робить molfar-wg:
+
+  systemctl is-active|is-enabled|start|restart|stop|enable|disable|reset-failed  wg-quick@N.service
+  systemctl is-active|stop|reset-failed  molfar-wg-rollback-N.timer|.service
+  systemd-run --unit=U --on-active=SEC [--...] CMD ...
+  journalctl -u wg-quick@N.service -n K [--no-pager] [-o cat]
+
+Стан:
+  /etc/wireguard/.autostart/N      — профіль увімкнено в автозапуск (зберігається у томі)
+  /run/molfar-wg/N.log             — вивід wg-quick (замість журналу systemd)
+  /run/molfar-wg/U.pid             — PID таймера відкату U
+"""
+import os
+import re
+import signal
+import subprocess
+import sys
+import time
+
+WG_DIR = "/etc/wireguard"
+AUTOSTART = os.path.join(WG_DIR, ".autostart")
+RUN = "/run/molfar-wg"
+WG = "/usr/bin/wg"
+WG_QUICK = "/usr/bin/wg-quick"
+NAME_RE = re.compile(r"^[A-Za-z0-9_=+][A-Za-z0-9_=+.-]{0,14}$")
+LOG_MAX = 64 * 1024
+
+
+def die(msg, rc=1):
+    print(msg, file=sys.stderr)
+    sys.exit(rc)
+
+
+def wg_name(unit):
+    m = re.match(r"^wg-quick@(.+?)(\.service)?$", unit)
+    if m and NAME_RE.match(m.group(1)):
+        return m.group(1)
+    return None
+
+
+def timer_name(unit):
+    m = re.match(r"^(molfar-wg-rollback-[A-Za-z0-9_=+.-]{1,15}?)(\.timer|\.service)?$", unit)
+    return m.group(1) if m else None
+
+
+def log_path(name):
+    return os.path.join(RUN, name + ".log")
+
+
+def log(name, text):
+    os.makedirs(RUN, exist_ok=True)
+    p = log_path(name)
+    try:
+        if os.path.getsize(p) > LOG_MAX:
+            os.replace(p, p + ".1")
+    except OSError:
+        pass
+    with open(p, "a", encoding="utf-8") as f:
+        f.write(text if text.endswith("\n") else text + "\n")
+
+
+def wg_active(name):
+    try:
+        return subprocess.run([WG, "show", name], capture_output=True, timeout=10).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def wg_quick(action, name):
+    stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    log(name, f"--- {stamp} wg-quick {action} {name}")
+    try:
+        p = subprocess.run([WG_QUICK, action, name], capture_output=True, text=True, timeout=60)
+        rc, outp = p.returncode, (p.stdout + p.stderr)
+    except subprocess.TimeoutExpired:
+        rc, outp = 1, "timeout"
+    except OSError as e:
+        rc, outp = 1, str(e)
+    if outp.strip():
+        log(name, outp.strip())
+    if rc != 0:
+        log(name, f"wg-quick {action} {name}: failed (rc={rc})")
+        print(outp.strip()[-1500:], file=sys.stderr)
+    return rc
+
+
+# ---------------- таймери відкату ----------------
+def pid_file(tname):
+    return os.path.join(RUN, tname + ".pid")
+
+
+def timer_pid(tname):
+    try:
+        with open(pid_file(tname)) as f:
+            pid = int(f.read().strip())
+        os.kill(pid, 0)
+        return pid
+    except (OSError, ValueError):
+        return None
+
+
+def timer_stop(tname):
+    pid = timer_pid(tname)
+    if pid:
+        try:
+            os.killpg(pid, signal.SIGTERM)
+        except OSError:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError:
+                pass
+    try:
+        os.unlink(pid_file(tname))
+    except OSError:
+        pass
+
+
+def timer_child(tname, sec, cmd):
+    """Процес таймера: чекає SEC секунд і виконує CMD (зазвичай `systemctl stop wg-quick@N`)."""
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    time.sleep(sec)
+    try:
+        subprocess.run(cmd, timeout=120)
+    finally:
+        try:
+            with open(pid_file(tname)) as f:
+                if int(f.read().strip()) == os.getpid():
+                    os.unlink(pid_file(tname))
+        except (OSError, ValueError):
+            pass
+
+
+# ---------------- systemctl ----------------
+def systemctl(args):
+    args = [a for a in args if a not in ("--quiet", "-q", "--no-block", "--no-pager")]
+    if len(args) < 2:
+        die("svc-shim: unsupported systemctl call: " + " ".join(args))
+    verb, units = args[0], args[1:]
+    rc = 0
+    for unit in units:
+        name, tname = wg_name(unit), timer_name(unit)
+        if tname:
+            if verb == "is-active":
+                act = timer_pid(tname) is not None
+                print("active" if act else "inactive")
+                rc = rc or (0 if act else 3)
+            elif verb == "stop":
+                timer_stop(tname)
+            elif verb == "reset-failed":
+                pass
+            else:
+                die(f"svc-shim: unsupported: systemctl {verb} {unit}")
+        elif name:
+            auto = os.path.join(AUTOSTART, name)
+            if verb == "is-active":
+                act = wg_active(name)
+                print("active" if act else "inactive")
+                rc = rc or (0 if act else 3)
+            elif verb == "is-enabled":
+                en = os.path.exists(auto)
+                print("enabled" if en else "disabled")
+                rc = rc or (0 if en else 1)
+            elif verb == "start":
+                if not wg_active(name):
+                    rc = rc or wg_quick("up", name)
+            elif verb == "restart":
+                if wg_active(name):
+                    wg_quick("down", name)
+                rc = rc or wg_quick("up", name)
+            elif verb == "stop":
+                if wg_active(name):
+                    rc = rc or wg_quick("down", name)
+            elif verb == "enable":
+                os.makedirs(AUTOSTART, mode=0o700, exist_ok=True)
+                open(auto, "w").close()
+            elif verb == "disable":
+                try:
+                    os.unlink(auto)
+                except FileNotFoundError:
+                    pass
+            elif verb == "reset-failed":
+                pass
+            else:
+                die(f"svc-shim: unsupported: systemctl {verb} {unit}")
+        else:
+            die(f"svc-shim: unknown unit {unit}")
+    sys.exit(rc)
+
+
+# ---------------- systemd-run ----------------
+def systemd_run(args):
+    unit, sec, i = None, None, 0
+    while i < len(args) and args[i].startswith("-"):
+        a = args[i]
+        if a.startswith("--unit="):
+            unit = a.split("=", 1)[1]
+        elif a.startswith("--on-active="):
+            sec = a.split("=", 1)[1].rstrip("s")
+        i += 1
+    cmd = args[i:]
+    tname = timer_name(unit or "")
+    if not tname or not cmd or sec is None or not sec.isdigit():
+        die("svc-shim: unsupported systemd-run call: " + " ".join(args))
+    os.makedirs(RUN, exist_ok=True)
+    timer_stop(tname)
+    p = subprocess.Popen([sys.executable, "-I", os.path.realpath(__file__), "__timer", tname, sec, *cmd],
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True, close_fds=True)
+    with open(pid_file(tname), "w") as f:
+        f.write(str(p.pid))
+    print(f"Running timer as unit: {tname}.timer")
+
+
+# ---------------- journalctl ----------------
+def journalctl(args):
+    unit, n = None, 20
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a in ("-u", "--unit") and i + 1 < len(args):
+            unit, i = args[i + 1], i + 1
+        elif a == "-n" and i + 1 < len(args):
+            n, i = int(args[i + 1]) if args[i + 1].isdigit() else 20, i + 1
+        elif a == "-o":
+            i += 1
+        i += 1
+    name = wg_name(unit or "")
+    if not name:
+        return
+    try:
+        with open(log_path(name), encoding="utf-8", errors="replace") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return
+    print("\n".join(lines[-n:]))
+
+
+def main():
+    me = os.path.basename(sys.argv[0])
+    args = sys.argv[1:]
+    if args[:1] == ["__timer"]:
+        return timer_child(args[1], int(args[2]), args[3:])
+    if me == "systemctl":
+        return systemctl(args)
+    if me == "systemd-run":
+        return systemd_run(args)
+    if me == "journalctl":
+        return journalctl(args)
+    die(f"svc-shim: invoked as {me}; expected systemctl, systemd-run or journalctl")
+
+
+if __name__ == "__main__":
+    os.umask(0o077)
+    main()

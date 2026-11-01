@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мольфар</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/netmap.css">
+<link rel="stylesheet" href="/static/wifi.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='%2322c55e'/></svg>">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="dot" id="health-dot"></span>
+    <div>
+      <div class="title" data-i18n="brand">Мольфар</div>
+      <div class="sub" id="device-sub">—</div>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="overview" class="active" data-i18n="tab_overview">Огляд</button>
+    <button data-tab="history" data-i18n="tab_history">Історія</button>
+    <button data-tab="incidents" data-i18n="tab_incidents" id="tab-btn-inc">Інциденти</button>
+    <button data-tab="wg">WireGuard</button>
+    <button data-tab="netmap" data-i18n="tab_netmap">Мапа мережі</button>
+    <button data-tab="wifi" data-i18n="tab_wifi" class="hidden">Wi-Fi ефір</button>
+    <button data-tab="settings" data-i18n="tab_settings">Налаштування</button>
+    <button data-tab="events" data-i18n="tab_events">Журнал</button>
+  </nav>
+  <div class="seg lang" id="lang-switch" role="group" aria-label="Language">
+    <button data-lang="uk">UK</button>
+    <button data-lang="en">EN</button>
+  </div>
+</header>
+
+<main>
+  <div id="default-pw-warning" class="notice hidden">
+    <span data-i18n="pw_default_warn">Використовується пароль за замовчуванням (Molfar). Змініть його в налаштуваннях.</span>
+    <a href="#settings" id="link-password" data-i18n="pw_change_link">Змінити пароль</a>
+  </div>
+
+  <!-- ОГЛЯД -->
+  <section id="tab-overview" class="tab active">
+    <div class="dash-tools">
+      <span class="muted small hidden" id="dash-hint" data-i18n="dash_hint">Перетягуйте плитки за ⠿ або пересувайте стрілками.</span>
+      <button class="btn small hidden" id="dash-reset" type="button" data-i18n="dash_reset">Як було</button>
+      <button class="btn small" id="dash-edit" type="button" aria-pressed="false" data-i18n="dash_edit">Змінити розташування</button>
+    </div>
+    <div class="dash" id="dash">
+      <div class="card tile inc-ind" data-tile="inc"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div>
+        <div class="card-head"><h2 data-i18n="tab_incidents">Інциденти</h2><a href="#incidents" class="small" data-i18n="ind_details">Деталі →</a></div>
+        <a href="#incidents" class="ind-body" id="inc-ind" aria-live="polite">
+          <span class="ball ok" id="inc-ball" aria-hidden="true">
+            <svg class="logo" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <g transform="translate(-4 1)">
+            <path d="M25 40 C33 31 38 21 37 11 Q36 6 31 7"/>
+            <path d="M37 11 C46 17 55 28 60 39"/>
+            <path d="M21 41 Q41 34 64 40"/>
+            <path d="M30 34.5 l3 -3 3 3 3 -3 3 3 3 -3 3 3 3 -3 3 3" stroke-width="1.6"/>
+            <path d="M30 42 Q31 52 42 54 Q53 52 54 42"/>
+            <circle cx="37" cy="46" r="1.4" fill="currentColor" stroke="none"/>
+            <circle cx="47" cy="46" r="1.4" fill="currentColor" stroke="none"/>
+            <path d="M31 50 Q33 63 42 73 Q51 63 53 50"/>
+            <path d="M37 54 q2 4 0 8 q-2 4 1 7" stroke-width="1.5"/>
+            <path d="M42 57 q2 4 0 8" stroke-width="1.5"/>
+            <path d="M47 54 q-2 4 0 8 q2 4 -1 7" stroke-width="1.5"/>
+            <path d="M31 56 Q24 69 22 90 L62 90 Q60 74 56 62"/>
+            <path d="M26.5 70 L25 88 M31 72 L30 88" stroke-width="1.5"/>
+            <circle cx="28.2" cy="75" r="0.9" fill="currentColor" stroke="none"/>
+            <circle cx="27.9" cy="79" r="0.9" fill="currentColor" stroke="none"/>
+            <circle cx="27.6" cy="83" r="0.9" fill="currentColor" stroke="none"/>
+            <path d="M51 78 v10 M55 76 v12 M59 79 v9" stroke-width="1.5"/>
+            <path d="M51 80 h4 M51 84 h4 M55 82 h4 M55 86 h4" stroke-width="1.2"/>
+            <path d="M36 84 l3 -3.5 3 3.5 -3 3.5z M42 84 l3 -3.5 3 3.5 -3 3.5z" stroke-width="1.5"/>
+            <circle cx="39" cy="84" r="0.8" fill="currentColor" stroke="none"/>
+            <circle cx="45" cy="84" r="0.8" fill="currentColor" stroke="none"/>
+            <path d="M55 61 Q63 62 68 55"/>
+            <circle cx="70" cy="54" r="3.3"/>
+            <path d="M70 92 L70 22"/>
+            <path d="M70 22 Q70 12 77.5 12 Q84 12 84 18.5 Q84 24 78.5 24 Q75.5 24 75.5 21"/>
+            <path d="M67.3 34 l2.7 -2.2 2.7 2.2 M67.3 40 l2.7 -2.2 2.7 2.2 M67.3 72 l2.7 -2.2 2.7 2.2 M67.3 78 l2.7 -2.2 2.7 2.2" stroke-width="1.4"/>
+            <path d="M88 32 v11 M82.5 37.5 h11 M84.1 33.6 l7.8 7.8 M91.9 33.6 l-7.8 7.8" stroke-width="1.6"/>
+            <circle cx="88" cy="37.5" r="1.4" fill="currentColor" stroke="none"/>
+            <circle cx="81" cy="48" r="1" fill="currentColor" stroke="none"/>
+            <circle cx="94" cy="27" r="1" fill="currentColor" stroke="none"/>
+            </g>
+            </svg>
+            <span class="mark">!</span>
+          </span>
+          <span class="ind-text"><span class="ind-title" id="inc-ind-title">—</span><span class="muted small" id="inc-ind-sub"></span></span>
+        </a>
+      </div>
+      <div class="card ping-card tile" data-tile="ping1"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div><div class="tile-body"></div></div>
+      <div class="card ping-card tile" data-tile="ping2"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div><div class="tile-body"></div></div>
+      <div class="card ping-card tile" data-tile="ping3"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div><div class="tile-body"></div></div>
+
+      <div class="card tile wide" data-tile="speed"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div>
+        <div class="card-head">
+          <h2>Speedtest</h2>
+          <span class="muted small" id="speed-engine"></span>
+        </div>
+        <div id="speed-progress" class="progress hidden"></div>
+        <div class="metrics" id="speed-metrics"></div>
+        <div class="muted small" id="speed-meta"></div>
+        <div class="small" style="margin-top:6px"><span data-i18n="server">Сервер</span>: <span id="speed-server">—</span> · <a href="#settings" id="link-server" data-i18n="change">змінити</a></div>
+        <div class="actions">
+          <button class="btn primary" id="btn-single" data-i18n="btn_single">Один тест</button>
+          <button class="btn" id="btn-series" data-i18n="btn_series">Серія</button>
+          <button class="btn danger" id="btn-stop" disabled data-i18n="btn_stop">Зупинити</button>
+        </div>
+      </div>
+
+      <div class="card tile wide" data-tile="auto"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div>
+        <div class="card-head"><h2 data-i18n="automation">Автоматизація</h2></div>
+        <div class="toggle-row">
+          <div>
+            <div data-i18n="auto_speedtest">Нічний speedtest</div>
+            <div class="muted small" id="sched-info">—</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="tg-speedtest"><span></span></label>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div data-i18n="auto_ping">Моніторинг пінгу</div>
+            <div class="muted small" id="ping-info">—</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="tg-ping"><span></span></label>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div data-i18n="auto_alerts">Сповіщення в Telegram</div>
+            <div class="muted small" id="alert-info">—</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="tg-alert"><span></span></label>
+        </div>
+        <div class="actions">
+          <button class="btn" id="btn-ping" data-i18n="btn_ping">Пінг зараз</button>
+        </div>
+      </div>
+
+      <div class="card isp-card tile" data-tile="isp"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div>
+        <div class="card-head"><h2 data-i18n="isp_title">Провайдер</h2><button class="btn small" id="btn-isp-check" data-i18n="isp_check">Перевірити</button></div>
+        <div id="isp"></div>
+      </div>
+      <div class="card tile" data-tile="wg"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div>
+        <div class="card-head"><h2>WireGuard</h2><a href="#wg" class="small" data-i18n="wg_manage">Керувати профілями →</a></div>
+        <div id="wg"></div>
+      </div>
+      <div class="card tile" data-tile="lan"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div>
+        <div class="card-head"><h2 data-i18n="lan_title">Локальна мережа</h2><a href="#netmap" class="small" data-i18n="lan_open">Мапа мережі →</a></div>
+        <div id="lan"></div>
+      </div>
+      <div class="card tile hidden" data-tile="wifi"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div>
+        <div class="card-head"><h2 data-i18n="tab_wifi">Wi-Fi ефір</h2><a href="#wifi" class="small" data-i18n="wf_open">Відкрити →</a></div>
+        <div id="wifi-tile"></div>
+      </div>
+      <div class="card tile" data-tile="sys"><div class="tile-bar"><span class="tile-grip" aria-hidden="true">⠿</span><button type="button" class="btn small tile-mv" data-mv="-1">←</button><button type="button" class="btn small tile-mv" data-mv="1">→</button></div>
+        <div class="card-head"><h2 data-i18n="device">Пристрій</h2></div>
+        <div id="sys" class="kv"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- МАПА МЕРЕЖІ -->
+  <section id="tab-netmap" class="tab">
+    <div class="nm-toolbar">
+      <div class="nm-summary">
+        <div class="nm-chips" id="nm-chips"></div>
+        <div class="muted small" id="nm-scanline">—</div>
+      </div>
+      <div class="nm-tools">
+        <button class="btn small" id="nm-scan" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"/></svg><span data-i18n="nm_scan_now">Сканувати</span></button>
+        <button class="btn small" id="nm-edit" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg><span data-i18n="nm_edit">Редагувати</span></button>
+        <button class="btn small" id="nm-add" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="nm_add">Додати</span></button>
+        <button class="btn small" id="nm-auto" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="6" height="5" rx="1"/><rect x="15" y="4" width="6" height="5" rx="1"/><rect x="15" y="15" width="6" height="5" rx="1"/><path d="M9 6.5h6M12 6.5v11h3"/></svg><span data-i18n="nm_arrange">Впорядкувати</span></button>
+        <button class="btn small" id="nm-log" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span data-i18n="nm_log">Журнал мапи</span></button>
+        <button class="btn small" id="nm-info" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span data-i18n="nm_scan_state">Сканування</span></button>
+      </div>
+    </div>
+    <div class="nm-wrap" id="nm-wrap">
+      <svg id="nm-cv" role="img"><g id="nm-world"><g id="nm-edges"></g><g id="nm-nodes"></g></g></svg>
+      <div class="nm-hint hidden" id="nm-hint" data-i18n="nm_hint_edit"></div>
+      <div class="nm-banner hidden" id="nm-banner"></div>
+      <div class="nm-legend" id="nm-legend"></div>
+      <div class="nm-zoom">
+        <button class="btn" id="nm-z-in" type="button">+</button>
+        <button class="btn" id="nm-z-out" type="button">−</button>
+        <button class="btn" id="nm-z-fit" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      </div>
+      <aside class="nm-panel hidden" id="nm-panel"></aside>
+      <div class="nm-toast hidden" id="nm-toast"></div>
+    </div>
+  </section>
+
+  <!-- WI-FI ЕФІР -->
+  <section id="tab-wifi" class="tab">
+    <div class="toolbar">
+      <div>
+        <h2 data-i18n="tab_wifi">Wi-Fi ефір</h2>
+        <div class="muted small" id="wf-line">—</div>
+      </div>
+      <div class="toolbar-right">
+        <div class="seg" id="wf-band" role="group" aria-label="Band">
+          <button type="button" data-band="2.4">2.4 ГГц</button>
+          <button type="button" data-band="5">5 ГГц</button>
+        </div>
+        <button class="btn primary" id="wf-scan" type="button" data-i18n="wf_scan">Сканувати</button>
+      </div>
+    </div>
+    <div id="wf-notice"></div>
+    <div id="wf-body" class="hidden">
+      <div class="card" id="wf-rec"></div>
+      <div class="card">
+        <div class="card-head"><h2 data-i18n="wf_spec_title">Спектр і оцінка каналів</h2></div>
+        <div class="wf-plot" id="wf-spec"></div>
+        <div class="wf-legend" id="wf-spec-legend"></div>
+        <div class="muted small wf-dfs-note hidden" id="wf-dfs-note"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div><h2 data-i18n="wf_fall_title">Водоспад: зашумленість у часі</h2><div class="muted small" id="wf-fall-n"></div></div>
+          <div class="seg" id="wf-range" role="group">
+            <button type="button" data-range="day" data-i18n="wf_r_day">Доба</button>
+            <button type="button" data-range="week" data-i18n="wf_r_week">Тиждень</button>
+            <button type="button" data-range="month" data-i18n="wf_r_month">Місяць</button>
+          </div>
+        </div>
+        <div class="wf-plot" id="wf-fall"></div>
+        <div class="wf-legend"><span data-i18n="wf_lvl_ok">чисто</span><span class="wf-grad" aria-hidden="true"></span><span data-i18n="wf_lvl_bad">зашумлено</span></div>
+        <div class="wf-period" id="wf-period"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2 data-i18n="wf_nets_title">Мережі поруч</h2><span class="badge" id="wf-net-count">0</span></div>
+        <div class="table-wrap"><table id="wf-table" class="wf-table"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ІСТОРІЯ -->
+  <section id="tab-history" class="tab">
+    <div class="toolbar">
+      <div class="seg" id="range">
+        <button data-r="day" class="active" data-i18n="r_day">Доба</button>
+        <button data-r="week" data-i18n="r_week">Тиждень</button>
+        <button data-r="month" data-i18n="r_month">Місяць</button>
+        <button data-r="year" data-i18n="r_year">Рік</button>
+      </div>
+      <div class="toolbar-right">
+        <a class="btn small" id="csv-ping" href="#" data-i18n="csv_ping">CSV пінг</a>
+        <a class="btn small" id="csv-speed" href="#">CSV speedtest</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2 data-i18n="h_speed">Швидкість, Мбіт/с</h2><span class="muted small" data-i18n="h_speed_note">лінія — середнє серії, точки — окремі тести</span></div>
+      <div class="chart"><canvas id="ch-speed"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2 data-i18n="h_loss">Втрати пакетів, %</h2></div>
+      <div class="chart"><canvas id="ch-loss"></canvas></div>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <div class="card-head"><h2 data-i18n="h_rtt">Затримка (RTT), мс</h2></div>
+        <div class="chart"><canvas id="ch-rtt"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2 data-i18n="h_jitter">Джитер, мс</h2></div>
+        <div class="chart"><canvas id="ch-jitter"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2 data-i18n="h_summary">Підсумок за період</h2></div>
+      <div class="table-wrap"><table id="summary-table"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2 data-i18n="h_series">Серії speedtest</h2></div>
+      <div class="table-wrap"><table id="series-table"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2 data-i18n="h_isp_history">Зміни провайдера та зовнішнього IP</h2><span class="muted small" data-i18n="h_isp_history_note">останні 50 подій, незалежно від періоду</span></div>
+      <div class="table-wrap"><table id="isp-table"></table></div>
+    </div>
+  </section>
+
+  <!-- ІНЦИДЕНТИ -->
+  <section id="tab-incidents" class="tab">
+    <div class="toolbar">
+      <div class="seg" id="inc-range">
+        <button data-r="day" class="active" data-i18n="r_day">Доба</button>
+        <button data-r="week" data-i18n="r_week">Тиждень</button>
+        <button data-r="month" data-i18n="r_month">Місяць</button>
+        <button data-r="year" data-i18n="r_year">Рік</button>
+      </div>
+      <div class="toolbar-right">
+        <span id="inc-now"></span>
+        <a class="btn small" id="csv-inc" href="#">CSV</a>
+      </div>
+    </div>
+    <div class="card inc-card">
+      <div class="card-head"><h2 data-i18n="inc_summary">Підсумок за період</h2></div>
+      <div class="inc-tiles" id="inc-tiles"></div>
+      <div class="inc-timeline" id="inc-timeline"></div>
+    </div>
+    <div class="card inc-card">
+      <div class="card-head"><h2 id="inc-period-title" data-i18n="h_inc_by_period">По днях</h2></div>
+      <div class="table-wrap"><table id="inc-period-table" class="inc-period"></table></div>
+    </div>
+    <div class="card inc-card">
+      <div class="card-head"><h2 data-i18n="h_inc_list">Усі інциденти</h2></div>
+      <div class="table-wrap"><table id="inc-table"></table></div>
+    </div>
+  </section>
+
+  <!-- WIREGUARD -->
+  <section id="tab-wg" class="tab">
+    <div id="wg-unavailable" class="notice hidden"><span data-i18n="wg_unavail_notice">Керування WireGuard недоступне — оновіть Мольфар: sudo ./install.sh</span></div>
+    <div class="toolbar">
+      <div>
+        <h2 data-i18n="wg_profiles">WireGuard-профілі</h2>
+        <div class="muted small" data-i18n="wg_profiles_note">Тунелі, через які Мольфар підключається до ваших мереж. Конфіги зберігаються в /etc/wireguard.</div>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn small" id="btn-wg-reload" data-i18n="refresh">Оновити</button>
+        <button class="btn primary small" id="btn-wg-add" data-i18n="wg_add">+ Додати профіль</button>
+      </div>
+    </div>
+
+    <form id="wg-editor" class="card hidden" autocomplete="off">
+      <div class="card-head">
+        <h2 id="wg-editor-title">—</h2>
+        <div class="seg" id="wg-mode">
+          <button type="button" data-mode="text" class="active" data-i18n="wg_mode_text">Конфігурація</button>
+          <button type="button" data-mode="wizard" data-i18n="wg_mode_wizard">Майстер</button>
+        </div>
+      </div>
+      <div class="row2">
+        <label><span data-i18n="wg_name">Назва (інтерфейс)</span><input type="text" name="name" maxlength="15" placeholder="wg0" required></label>
+        <label class="file-label"><span data-i18n="wg_import">Імпорт з файлу .conf</span><input type="file" id="wg-file" accept=".conf,text/plain"></label>
+      </div>
+
+      <div id="wg-wizard" class="hidden">
+        <div class="muted small" data-i18n="wg_wizard_note">Заповніть дані від адміністратора роутера / WG-сервера — конфігурацію буде сформовано автоматично.</div>
+        <div class="wg-section-title">[Interface]</div>
+        <div class="row2">
+          <label><span data-i18n="wg_w_address">Адреса в тунелі</span><input type="text" name="w_address" placeholder="10.66.66.5/32"></label>
+          <label><span data-i18n="wg_w_dns">DNS (необов'язково)</span><input type="text" name="w_dns" placeholder="10.10.105.1"></label>
+        </div>
+        <label><span data-i18n="wg_w_privkey">Приватний ключ цього пристрою</span>
+          <div class="search-row">
+            <input type="text" name="w_privkey" class="mono" placeholder="…=" spellcheck="false">
+            <button type="button" class="btn small" id="btn-wg-keygen" data-i18n="wg_w_gen">Згенерувати</button>
+          </div>
+        </label>
+        <div class="small" id="wg-w-pub"></div>
+        <div class="wg-section-title">[Peer]</div>
+        <label><span data-i18n="wg_w_peerpub">Публічний ключ сервера</span><input type="text" name="w_peerpub" class="mono" spellcheck="false"></label>
+        <div class="row2">
+          <label><span data-i18n="wg_w_endpoint">Адреса сервера (Endpoint)</span><input type="text" name="w_endpoint" placeholder="vpn.example.com:51820"></label>
+          <label><span data-i18n="wg_w_allowed">Мережі через тунель (AllowedIPs)</span><input type="text" name="w_allowed" placeholder="10.10.0.0/16"></label>
+        </div>
+        <div class="row2">
+          <label><span data-i18n="wg_w_psk">Preshared key (необов'язково)</span><input type="text" name="w_psk" class="mono" spellcheck="false"></label>
+          <label><span data-i18n="wg_w_keepalive">PersistentKeepalive, с</span><input type="number" name="w_keepalive" min="0" max="65535" value="25"></label>
+        </div>
+        <div class="actions"><button type="button" class="btn" id="btn-wg-build" data-i18n="wg_w_build">Сформувати конфігурацію →</button></div>
+      </div>
+
+      <div id="wg-text">
+        <label><span data-i18n="wg_config">Конфігурація</span>
+          <textarea name="config" class="mono" rows="14" spellcheck="false" placeholder="[Interface]&#10;PrivateKey = …&#10;Address = 10.66.66.5/32&#10;&#10;[Peer]&#10;PublicKey = …&#10;Endpoint = vpn.example.com:51820&#10;AllowedIPs = 10.10.0.0/16&#10;PersistentKeepalive = 25"></textarea>
+        </label>
+        <div class="muted small" id="wg-hidden-note" data-i18n="wg_hidden_note">«PrivateKey = &lt;hidden&gt;» — ключ прихований і залишиться без змін. Щоб замінити, вставте новий.</div>
+        <div class="warn-box hidden" id="wg-dns-warn"></div>
+        <div class="warn-box hidden" id="wg-fulltunnel" data-i18n="wg_fulltunnel">AllowedIPs містить 0.0.0.0/0 або ::/0 — весь трафік пристрою піде в тунель. Якщо зв'язок з Мольфаром пропаде, тунель автоматично вимкнеться через хвилину.</div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn primary" data-i18n="save">Зберегти</button>
+        <button type="button" class="btn" id="btn-wg-cancel" data-i18n="cancel">Скасувати</button>
+      </div>
+    </form>
+
+    <div id="wg-list"></div>
+  </section>
+
+  <!-- НАЛАШТУВАННЯ -->
+  <section id="tab-settings" class="tab">
+    <form id="settings-form" autocomplete="off">
+      <div class="grid two">
+        <fieldset class="card">
+          <legend>Speedtest</legend>
+          <label class="check"><input type="checkbox" name="speedtest_enabled"> <span data-i18n="s_sched">Запускати серію за розкладом</span></label>
+          <label><span data-i18n="s_time">Час запуску (щодня)</span><input type="time" name="speedtest_time" required></label>
+          <div class="row2">
+            <label><span data-i18n="s_runs">Тестів у серії</span><input type="number" name="speedtest_runs" min="1" max="20"></label>
+            <label><span data-i18n="s_interval">Інтервал, хв</span><input type="number" name="speedtest_interval_min" min="1" max="120"></label>
+          </div>
+          <div class="row2">
+            <label><span data-i18n="s_engine">Рушій</span>
+              <select name="speedtest_engine">
+                <option value="auto" data-i18n="auto">Авто</option>
+                <option value="ookla">Ookla CLI</option>
+                <option value="python">speedtest-cli (Python)</option>
+              </select>
+            </label>
+          </div>
+          <div class="server-pick">
+            <div class="server-current">
+              <div>
+                <div class="muted small" data-i18n="s_server">Сервер призначення</div>
+                <div id="server-label">—</div>
+              </div>
+              <div class="actions tight">
+                <button type="button" class="btn small" id="btn-server-open" data-i18n="s_pick">Вибрати…</button>
+                <button type="button" class="btn small" id="btn-server-auto" data-i18n="auto">Авто</button>
+              </div>
+            </div>
+            <input type="hidden" name="speedtest_server_id">
+            <input type="hidden" name="speedtest_server_name">
+            <div id="server-panel" class="hidden">
+              <div class="search-row">
+                <input type="text" id="server-search" data-i18n-ph="s_search_ph" placeholder="Місто або провайдер" maxlength="60">
+                <button type="button" class="btn small" id="btn-server-search" data-i18n="s_find">Знайти</button>
+                <button type="button" class="btn small" id="btn-server-near" data-i18n="s_nearest">Найближчі</button>
+              </div>
+              <div class="muted small" id="server-status"></div>
+              <div class="server-list" id="server-list"></div>
+              <label><span data-i18n="s_manual">Або ID вручну</span>
+                <div class="search-row">
+                  <input type="text" id="server-manual" inputmode="numeric" data-i18n-ph="s_manual_ph" placeholder="напр. 14887">
+                  <button type="button" class="btn small" id="btn-server-manual" data-i18n="apply">Застосувати</button>
+                </div>
+              </label>
+            </div>
+            <label class="check"><input type="checkbox" name="speedtest_fallback_auto"> <span data-i18n="s_fallback">Якщо сервер недоступний — тест на автовибраному</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend data-i18n="ping">Пінг</legend>
+          <label class="check"><input type="checkbox" name="ping_enabled"> <span data-i18n="p_enabled">Постійний моніторинг</span></label>
+          <label><span data-i18n="p_t1">Адреса 1</span><input type="text" name="ping_targets.0" placeholder="1.1.1.1"></label>
+          <label><span data-i18n="p_t2">Адреса 2</span><input type="text" name="ping_targets.1" placeholder="8.8.8.8"></label>
+          <div class="muted small" data-i18n="p_main_note">Три основні адреси показуються на «Огляді».</div>
+          <label><span data-i18n="p_t3">Адреса 3 (своя)</span><input type="text" name="ping_targets.2" data-i18n-ph="p_t3_ph" placeholder="10.10.105.1 або хост"></label>
+          <div class="row2">
+            <label><span data-i18n="p_every">Кожні, с</span><input type="number" name="ping_interval_sec" min="10" max="3600"></label>
+            <label><span data-i18n="p_count">Пакетів за перевірку</span><input type="number" name="ping_count" min="3" max="100"></label>
+          </div>
+          <label class="check"><input type="checkbox" name="ping_pause_during_speedtest"> <span data-i18n="p_pause">Пауза пінгу під час speedtest</span></label>
+          <div class="muted small" data-i18n="px_sched">Додаткові хости (список нижче):</div>
+          <div class="row2">
+            <label><span data-i18n="p_every">Кожні, с</span><input type="number" name="ping_extra_interval_sec" min="30" max="3600"></label>
+            <label><span data-i18n="p_count">Пакетів за перевірку</span><input type="number" name="ping_extra_count" min="3" max="50"></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend data-i18n="tg_legend">Telegram-сповіщення</legend>
+          <label class="check"><input type="checkbox" name="alert_enabled"> <span data-i18n="tg_enable">Увімкнути сповіщення</span></label>
+          <label><span data-i18n="tg_token">Токен бота</span><input type="password" name="tg_token" placeholder="123456:ABC…"></label>
+          <label>Chat ID<input type="text" name="tg_chat_id" data-i18n-ph="tg_chat_ph" placeholder="-100… або ваш id"></label>
+          <div class="row2">
+            <label><span data-i18n="tg_loss">Поріг втрат, %</span><input type="number" name="alert_loss_pct" min="1" max="100" step="0.5"></label>
+            <label><span data-i18n="tg_consec">Перевірок поспіль</span><input type="number" name="alert_consecutive" min="1" max="100"></label>
+          </div>
+          <div class="row2">
+            <label><span data-i18n="tg_cooldown">Пауза між алертами, хв</span><input type="number" name="alert_cooldown_min" min="0" max="1440"></label>
+            <label><span data-i18n="tg_minspeed">Мін. швидкість ↓, Мбіт/с</span><input type="number" name="alert_speed_min_mbps" min="0" step="1" data-i18n-ph="tg_minspeed_ph" placeholder="0 = вимк."></label>
+          </div>
+          <label class="check"><input type="checkbox" name="tg_series_report"> <span data-i18n="tg_report">Надсилати підсумок кожної серії speedtest</span></label>
+          <label class="check"><input type="checkbox" name="alert_isp_change"> <span data-i18n="tg_isp">Сповіщати про зміну провайдера</span></label>
+          <label class="check"><input type="checkbox" name="net_alert_new"> <span data-i18n="tg_net_new">Сповіщати про новий пристрій у мережі</span></label>
+          <div class="muted small" data-i18n="tg_inc_head">Інциденти:</div>
+          <label class="check"><input type="checkbox" name="alert_inc_internet"> <span data-i18n="tg_inc_internet">Інтернет відновлено (скільки не було)</span></label>
+          <label class="check"><input type="checkbox" name="alert_inc_molfar"> <span data-i18n="tg_inc_molfar">Мольфар знову онлайн після перезавантаження чи збою</span></label>
+          <label class="check"><input type="checkbox" name="alert_inc_wifi"> <span data-i18n="tg_inc_wifi">Масовий відвал Wi-Fi-клієнтів</span></label>
+          <label class="check"><input type="checkbox" name="alert_inc_router"> <span data-i18n="tg_inc_router">Роутер недоступний або перезавантажився</span></label>
+          <div class="actions"><button type="button" class="btn" id="btn-tg-test" data-i18n="tg_test">Надіслати тестове</button></div>
+        </fieldset>
+
+        <fieldset class="card" id="router-fieldset">
+          <legend data-i18n="r_legend">Інциденти та роутер</legend>
+          <label><span data-i18n="r_inet_confirm">«Немає інтернету», якщо публічні адреси не відповідають перевірок поспіль</span><input type="number" name="inc_inet_confirm" min="1" max="10"></label>
+          <div class="muted small" data-i18n="r_note">Wi-Fi-клієнтів Мольфар бере з роутера. Потрібен локальний пароль адміністратора (не TP-Link ID / ASUS-акаунт).</div>
+          <div class="row2">
+            <label><span data-i18n="r_type">Роутер</span>
+              <select name="router_type">
+                <option value="none" data-i18n="r_none">Не опитувати</option>
+                <option value="tplink">TP-Link (Archer C64…)</option>
+                <option value="asus">ASUS (ExpertWiFi EBR63, RT-…)</option>
+              </select>
+            </label>
+            <label><span data-i18n="r_host">Адреса</span><input type="text" name="router_host" placeholder="192.168.0.1"></label>
+          </div>
+          <div class="row2">
+            <label><span data-i18n="r_user">Користувач</span><input type="text" name="router_user" placeholder="admin" autocomplete="off"></label>
+            <label><span data-i18n="r_password">Пароль</span><input type="password" name="router_password" autocomplete="new-password"></label>
+          </div>
+          <div class="row2">
+            <label><span data-i18n="r_poll">Опитувати кожні, хв</span><input type="number" name="router_poll_min" min="1" max="60"></label>
+          </div>
+          <label><span data-i18n="r_drop_min">Відвал Wi-Fi — коли одночасно зникли всі Wi-Fi-клієнти, а до цього їх було щонайменше</span><input type="number" name="wifi_drop_min" min="1" max="100"></label>
+          <div class="muted small warn-text hidden" id="r-tplink-note" data-i18n="r_tplink_note">TP-Link пускає лише одного адміністратора: під час опитування вас може викинути з веб-інтерфейсу роутера.</div>
+          <div class="actions"><button type="button" class="btn" id="btn-router-test" data-i18n="r_test">Перевірити з'єднання</button><span class="small" id="router-test-res"></span></div>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend data-i18n="general">Загальне</legend>
+          <label><span data-i18n="g_name">Назва пристрою</span><input type="text" name="device_name" maxlength="40"></label>
+          <label><span data-i18n="g_lang">Мова інтерфейсу та сповіщень</span>
+            <select name="language">
+              <option value="uk">Українська</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          <label><span data-i18n="g_retention">Зберігати історію, днів</span><input type="number" name="retention_days" min="7" max="1825"></label>
+          <label><span data-i18n="g_isp_every">Визначати провайдера кожні, хв</span><input type="number" name="isp_check_min" min="0" max="1440" data-i18n-ph="g_isp_every_ph" placeholder="0 = вимк."></label>
+        </fieldset>
+
+        <fieldset class="card" id="settings-netmap">
+          <legend data-i18n="tab_netmap">Мапа мережі</legend>
+          <label class="check"><input type="checkbox" name="net_enabled"> <span data-i18n="s_net_enabled">Сканувати локальну мережу</span></label>
+          <div class="row2">
+            <label><span data-i18n="s_net_every">Сканувати кожні, хв</span><input type="number" name="net_scan_min" min="1" max="60"></label>
+            <label><span data-i18n="s_net_offline">Офлайн після, хв</span><input type="number" name="net_offline_min" min="2" max="1440"></label>
+          </div>
+          <div class="row2">
+            <label><span data-i18n="s_net_stale">Прибирати з мапи після, днів</span><input type="number" name="net_stale_days" min="1" max="365"></label>
+            <label><span data-i18n="s_net_log">Зберігати журнал мапи, днів</span><input type="number" name="net_log_days" min="30" max="1825"></label>
+          </div>
+          <label><span data-i18n="s_net_iface">Інтерфейс</span><input type="text" name="net_iface" maxlength="15" class="mono" data-i18n-ph="s_net_iface_ph" placeholder="авто (eth0)"></label>
+          <div class="muted small" data-i18n="s_net_note">Роутер і сам Мольфар ніколи не прибираються з мапи.</div>
+        </fieldset>
+
+        <fieldset class="card" id="settings-wifi">
+          <legend data-i18n="tab_wifi">Wi-Fi ефір</legend>
+          <label class="check"><input type="checkbox" name="wifi_air"> <span data-i18n="s_wifi_air">Увімкнути Wi-Fi ефір (вкладка й сканування)</span></label>
+          <div class="muted small hidden" id="s-wifi-noiface" data-i18n="s_wifi_noiface">Wi-Fi адаптера не знайдено — вкладка прихована. Решта Мольфара працює як завжди.</div>
+          <label class="check"><input type="checkbox" name="wifi_enabled"> <span data-i18n="s_wifi_enabled">Сканувати ефір за розкладом</span></label>
+          <div class="row2">
+            <label><span data-i18n="s_wifi_every">Сканувати кожні, хв</span><input type="number" name="wifi_scan_min" min="5" max="1440"></label>
+            <label><span data-i18n="s_wifi_keep">Зберігати історію, днів</span><input type="number" name="wifi_keep_days" min="1" max="365"></label>
+          </div>
+          <label><span data-i18n="s_wifi_mine">Мої мережі (SSID через кому)</span><input type="text" name="wifi_my_ssid" maxlength="300" data-i18n-ph="s_wifi_mine_ph" placeholder="Home, Home_5G"></label>
+          <label><span data-i18n="s_wifi_iface">Інтерфейс</span><input type="text" name="wifi_iface" maxlength="15" class="mono" data-i18n-ph="s_wifi_iface_ph" placeholder="авто (wlan0)"></label>
+          <div class="muted small" data-i18n="s_wifi_note">Мої мережі не рахуються завадами — Мольфар порівнює їхній канал з найкращим.</div>
+        </fieldset>
+      </div>
+      <div class="save-bar">
+        <span class="muted small" id="save-status"></span>
+        <button type="submit" class="btn primary" data-i18n="save">Зберегти</button>
+      </div>
+    </form>
+
+    <div class="card" id="ping-extra">
+      <div class="card-head">
+        <div>
+          <h2 data-i18n="px_title">Додаткові хости для пінгу</h2>
+          <div class="muted small" data-i18n="px_note">Пінгуються окремо від трьох основних і на «Огляді» не показуються. Результати — тут і в «Історії».</div>
+        </div>
+        <span class="badge" id="px-count">0</span>
+      </div>
+      <form id="px-form" class="px-add" autocomplete="off" novalidate>
+        <label><span data-i18n="px_host">Хост або IP</span><input type="text" id="px-host" maxlength="253" placeholder="192.168.50.20" spellcheck="false"></label>
+        <label><span data-i18n="px_name">Назва (необовʼязково)</span><input type="text" id="px-name" maxlength="40" data-i18n-ph="px_name_ph" placeholder="NAS"></label>
+        <button type="submit" class="btn primary" id="px-add" data-i18n="px_add">Додати</button>
+      </form>
+      <div class="warn-box bad hidden" id="px-error" role="alert"></div>
+      <div class="table-wrap"><table id="px-table"></table></div>
+    </div>
+
+    <form id="password-form" class="card pw-card" autocomplete="off">
+      <h2 data-i18n="pw_title">Пароль веб-інтерфейсу</h2>
+      <div class="muted small" id="pw-info">—</div>
+      <input type="text" name="username" autocomplete="username" class="hidden" tabindex="-1" aria-hidden="true">
+      <div class="pw-grid">
+        <label><span data-i18n="pw_current">Поточний пароль</span><input type="password" name="current" autocomplete="current-password"></label>
+        <label><span data-i18n="pw_new">Новий пароль</span><input type="password" name="new" autocomplete="new-password" minlength="6" maxlength="128" required></label>
+        <label><span data-i18n="pw_repeat">Повторіть новий</span><input type="password" name="repeat" autocomplete="new-password" minlength="6" maxlength="128" required></label>
+      </div>
+      <label class="check"><input type="checkbox" id="pw-show"> <span data-i18n="pw_show">Показати паролі</span></label>
+      <div class="actions"><button type="submit" class="btn primary" data-i18n="pw_submit">Змінити пароль</button></div>
+    </form>
+  </section>
+
+  <!-- ЖУРНАЛ -->
+  <section id="tab-events" class="tab">
+    <div class="card">
+      <div class="card-head"><h2 data-i18n="h_events">Журнал подій</h2><button class="btn small" id="btn-events-reload" data-i18n="refresh">Оновити</button></div>
+      <div id="events"></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/vendor/chart.umd.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/app.js"></script>
+<script src="/static/netmap-icons.js"></script>
+<script src="/static/netmap.js"></script>
+<script src="/static/wifi.js"></script>
+</body>
+</html>

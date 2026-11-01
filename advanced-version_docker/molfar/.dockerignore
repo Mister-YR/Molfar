@@ -1,0 +1,14 @@
+.git
+.env
+data
+wireguard
+tests
+**/__pycache__
+**/*.pyc
+*.zip
+*.tar
+README*.md
+DOCKER.md
+install.sh
+deploy/molfar.service
+deploy/wg0.conf.example

@@ -1,0 +1,24 @@
+# Приклад: Orange Pi як WireGuard-клієнт до головного роутера/сервера.
+# Потрібен, лише якщо Orange Pi сам має бути піром у тунелі.
+# Якщо WireGuard уже працює на роутері, а Pi просто стоїть у його LAN —
+# цей файл не потрібен: заходьте на http://<LAN-IP Pi>:8080 через тунель роутера.
+#
+# 1) Ключі:      wg genkey | sudo tee /etc/wireguard/pi.key | wg pubkey | sudo tee /etc/wireguard/pi.pub
+# 2) Копія:      sudo cp wg0.conf.example /etc/wireguard/wg0.conf && sudo chmod 600 /etc/wireguard/wg0.conf
+# 3) Запуск:     sudo systemctl enable --now wg-quick@wg0
+# 4) На сервері додайте пір з публічним ключем Pi і AllowedIPs = <адреса Pi>/32
+
+[Interface]
+# Адреса Pi в тунелі (підберіть вільну у вашій схемі 10.10.x.x)
+Address = 10.10.200.10/32
+PrivateKey = <вміст /etc/wireguard/pi.key>
+# DNS = 10.10.105.1
+
+[Peer]
+# Головний роутер / WG-сервер
+PublicKey = <публічний ключ сервера>
+Endpoint = <публічна IP або DDNS сервера>:51820
+# Які мережі ходять через тунель: усі локалки 10.10.105.0/24, 10.10.106.0/24 …
+AllowedIPs = 10.10.0.0/16
+# Тримає тунель відкритим за NAT — важливо, щоб Pi був доступний ззовні
+PersistentKeepalive = 25

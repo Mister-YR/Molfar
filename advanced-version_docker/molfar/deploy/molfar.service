@@ -1,0 +1,28 @@
+[Unit]
+Description=Мольфар — моніторинг мережі (ping, speedtest, Telegram)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=molfar
+Group=molfar
+EnvironmentFile=/etc/molfar.env
+Environment=HOME=/var/lib/molfar
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/opt/molfar
+ExecStart=/opt/molfar/venv/bin/python -m molfar
+Restart=always
+RestartSec=5
+# Захист (без NoNewPrivileges — потрібен sudo для `wg show`)
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/molfar
+# molfar-wg (через sudo) пише профілі сюди; решта /etc лишається тільки для читання
+ReadWritePaths=/etc/wireguard
+# Мапа мережі: arp-scan потребує raw-сокетів — даємо лише цю можливість, без root
+AmbientCapabilities=CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target

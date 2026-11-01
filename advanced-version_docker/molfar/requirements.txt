@@ -1,0 +1,5 @@
+fastapi>=0.110
+uvicorn>=0.29
+speedtest-cli>=2.1.3
+tplinkrouterc6u>=5.0
+asusrouter>=1.13
