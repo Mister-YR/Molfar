@@ -26,7 +26,7 @@ Molfar is written in Python, stores its data in a single SQLite file, and the in
 
 | Folder | What it is | Who it's for |
 |---|---|---|
-| [`basic-vesrion/`](basic-vesrion/) | **Basic version**: speed test, ping, history, Telegram, ISP, network map, WireGuard. The lightest one, with minimal dependencies. | Those who just want to keep track of their internet quality. |
+| [`basic-vesrion/`](basic-version/) | **Basic version**: speed test, ping, history, Telegram, ISP, network map, WireGuard. The lightest one, with minimal dependencies. | Those who just want to keep track of their internet quality. |
 | [`advanced-version/`](advanced-version/) | **Advanced version** — everything from the basic one, plus **Incidents** (outage log: internet loss, reboots, router unavailability), **Wi-Fi airspace** (neighbouring networks, channel congestion, advice on which channel to pick, DFS markers) and polling of **TP-Link / ASUS** routers (not tested yet). | Those who want to see more than "is the internet up or not" and tune their Wi-Fi. |
 | [`advanced-version_docker/`](advanced-version_docker/) | **Advanced version in Docker**: the same code, plus a `Dockerfile` and `docker-compose.yml` for running on a virtual machine or server, **x86_64 or ARM64**. | Those who want to run Molfar on a VM, NUC, NAS or server rather than an Orange Pi. |
 
