@@ -19,6 +19,7 @@ exactly when? Molfar answers these questions with numbers:
 - **ISP** — who is currently providing your internet and whether your external IP address has changed.
 - **Network map** — which devices are on your network and when new ones appear.
 - **WireGuard** — manage VPN tunnels so you can reach Molfar (and your home network) from anywhere.
+- **Diagnostics** — ping, traceroute, nslookup, telnet (TCP port check) and iperf3 throughput tests right from the web interface; Molfar can also act as an iperf3 server.
 
 Molfar is written in Python, stores its data in a single SQLite file, and the interface is available in Ukrainian and English.
 
@@ -26,7 +27,7 @@ Molfar is written in Python, stores its data in a single SQLite file, and the in
 
 | Folder | What it is | Who it's for |
 |---|---|---|
-| [`basic-version/`](basic-version/) | **Basic version**: speed test, ping, history, Telegram, ISP, network map, WireGuard. The lightest one, with minimal dependencies. | Those who just want to keep track of their internet quality. |
+| [`basic-version/`](basic-version/) | **Basic version**: speed test, ping, history, Telegram, ISP, network map, WireGuard, Diagnostics. The lightest one, with minimal dependencies. | Those who just want to keep track of their internet quality. |
 | [`advanced-version/`](advanced-version/) | **Advanced version** — everything from the basic one, plus **Incidents** (outage log: internet loss, reboots, router unavailability), **Wi-Fi airspace** (neighbouring networks, channel congestion, advice on which channel to pick, DFS markers) and polling of **TP-Link / ASUS** routers (not tested yet). | Those who want to see more than "is the internet up or not" and tune their Wi-Fi. |
 | [`advanced-version_docker/`](advanced-version_docker/) | **Advanced version in Docker**: the same code, plus a `Dockerfile` and `docker-compose.yml` for running on a virtual machine or server, **x86_64 or ARM64**. | Those who want to run Molfar on a VM, NUC, NAS or server rather than an Orange Pi. |
 
@@ -46,7 +47,7 @@ Each folder contains:
 **On an Orange Pi or another single-board computer running Debian / Ubuntu / Armbian:**
 
 ```bash
-cd advanced-version/molfar      # or basic-vesrion/molfar
+cd advanced-version/molfar      # or basic-version/molfar
 sudo ./install.sh
 ```
 

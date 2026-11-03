@@ -23,12 +23,15 @@ from .auth import Auth
 from .db import DB, DB_PATH, DEFAULTS
 from .i18n import LANGS, M as I18N_MSGS, tr
 from .monitor import Monitor
+from . import netscan
+from .diag import Diag, make_router as diag_router
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
 
 db = DB(DB_PATH)
 monitor = Monitor(db)
 auth = Auth(db)
+diag = Diag(db)
 
 
 def _t(msg_id, **kw):
@@ -42,11 +45,15 @@ def err(code, msg_id, **kw):
 @asynccontextmanager
 async def lifespan(_app):
     await monitor.start()
+    await diag.start()
     yield
+    await diag.shutdown()
     await monitor.shutdown()
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app.include_router(diag_router(diag, gateway=lambda: netscan.default_route()[1] or None,
+                               addresses=sysinfo.ip_addresses))
 
 
 @app.middleware("http")

@@ -187,7 +187,7 @@ function renderNotice() {
 
 /* --- рекомендація --- */
 function recBand(b) {
-  const B = D.scan.bands[b], r = B.rec, name = b === "2.4" ? "2.4 ГГц" : "5 ГГц";
+  const B = D.scan.bands[b], r = B.rec, name = t(b === "2.4" ? "band_2_4" : "band_5");
   if (!B.supported) return `<div class="wf-rec-band"><div class="wf-rec-h">${name}</div><div class="muted">${t("wf_band_unsupported")}</div></div>`;
   if (!r) return `<div class="wf-rec-band"><div class="wf-rec-h">${name}</div><div class="muted">${t("no_data")}</div></div>`;
   const what = b === "5" && r.block ? t("wf_rec_block", { b: blockTxt(r.block), w: r.width }) : t("wf_rec_width", { w: r.width });

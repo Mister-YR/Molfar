@@ -44,12 +44,15 @@ ENV DEBIAN_FRONTEND=noninteractive \
     MOLFAR_WG_SUDO=0 MOLFAR_WIFI_SUDO=0
 
 # Обов'язкові пакети (як CORE_PKGS в install.sh) + iw для Wi-Fi ефіру + procps (sysctl) + tzdata
-RUN apt-get update \
+# + інструменти вкладки «Діагностика» (DIAG_PKGS): traceroute, nslookup, telnet, iperf3 — ставляться завжди
+RUN echo "iperf3 iperf3/start_daemon boolean false" | debconf-set-selections \
+ && apt-get update \
  && apt-get install -y --no-install-recommends \
       python3 iputils-ping iproute2 wireguard-tools nftables arp-scan iw procps tzdata ca-certificates \
+      traceroute bind9-dnsutils inetutils-telnet iperf3 \
  && if [ "$EXTRA_TOOLS" != "0" ]; then \
       apt-get install -y --no-install-recommends \
-        dnsutils traceroute mtr-tiny net-tools ethtool iperf3 tcpdump iftop nload sqlite3 avahi-utils curl \
+        mtr-tiny net-tools ethtool tcpdump iftop nload sqlite3 avahi-utils curl \
       || echo "!! частину додаткових утиліт не встановлено"; \
     fi \
  && rm -rf /var/lib/apt/lists/*

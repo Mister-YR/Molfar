@@ -9,7 +9,7 @@ services:
     build:
       context: .
       args:
-        EXTRA_TOOLS: ${EXTRA_TOOLS:-1}     # 0 — без dig/mtr/iperf3/tcpdump… (менший образ)
+        EXTRA_TOOLS: ${EXTRA_TOOLS:-1}     # 0 — без mtr/tcpdump/iftop… (менший образ; інструменти «Діагностики» є завжди)
     image: ${MOLFAR_IMAGE:-molfar:latest}
     container_name: molfar
     restart: unless-stopped

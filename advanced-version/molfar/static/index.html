@@ -6,6 +6,7 @@
 <title>Мольфар</title>
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="/static/netmap.css">
+<link rel="stylesheet" href="/static/diag.css">
 <link rel="stylesheet" href="/static/wifi.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='%2322c55e'/></svg>">
 </head>
@@ -25,6 +26,7 @@
     <button data-tab="wg">WireGuard</button>
     <button data-tab="netmap" data-i18n="tab_netmap">Мапа мережі</button>
     <button data-tab="wifi" data-i18n="tab_wifi" class="hidden">Wi-Fi ефір</button>
+    <button data-tab="diag" data-i18n="tab_diag">Діагностика</button>
     <button data-tab="settings" data-i18n="tab_settings">Налаштування</button>
     <button data-tab="events" data-i18n="tab_events">Журнал</button>
   </nav>
@@ -202,8 +204,8 @@
       </div>
       <div class="toolbar-right">
         <div class="seg" id="wf-band" role="group" aria-label="Band">
-          <button type="button" data-band="2.4">2.4 ГГц</button>
-          <button type="button" data-band="5">5 ГГц</button>
+          <button type="button" data-band="2.4" data-i18n="band_2_4">2.4 ГГц</button>
+          <button type="button" data-band="5" data-i18n="band_5">5 ГГц</button>
         </div>
         <button class="btn primary" id="wf-scan" type="button" data-i18n="wf_scan">Сканувати</button>
       </div>
@@ -385,6 +387,52 @@
   </section>
 
   <!-- НАЛАШТУВАННЯ -->
+  <section id="tab-diag" class="tab">
+    <div class="toolbar">
+      <div>
+        <h2 data-i18n="tab_diag">Діагностика</h2>
+        <div class="muted small" data-i18n="dg_sub">Перевірка мережі просто з Мольфара: пінг, трасування, DNS, TCP-порти й пропускна здатність (iperf3).</div>
+      </div>
+      <div class="toolbar-right">
+        <div class="seg" id="dg-tools" role="group" aria-label="Tool">
+          <button type="button" data-tool="ping">Ping</button>
+          <button type="button" data-tool="traceroute">Traceroute</button>
+          <button type="button" data-tool="nslookup">NSLookup</button>
+          <button type="button" data-tool="telnet">Telnet</button>
+          <button type="button" data-tool="iperf3">iperf3</button>
+        </div>
+      </div>
+    </div>
+    <div id="dg-missing" class="notice hidden"></div>
+    <div class="dg-grid">
+      <form class="card" id="dg-form" autocomplete="off">
+        <div class="card-head"><h2 id="dg-form-title">—</h2></div>
+        <div class="muted" id="dg-form-hint"></div>
+        <div id="dg-fields"></div>
+        <div class="dg-chips" id="dg-quick"></div>
+        <div class="dg-actions">
+          <button class="btn primary" id="dg-run" type="submit" data-i18n="dg_run">Запустити</button>
+          <button class="btn danger hidden" id="dg-stop" type="button" data-i18n="dg_stop">Зупинити</button>
+        </div>
+      </form>
+      <div class="card hidden" id="dg-out">
+        <div class="card-head">
+          <h2 id="dg-out-title">—</h2>
+          <div class="dg-head-r"><span id="dg-out-status"></span><button class="btn small" id="dg-copy" type="button" data-i18n="dg_copy">Копіювати</button></div>
+        </div>
+        <div class="dg-progress hidden" id="dg-progress"><div></div></div>
+        <div id="dg-result"></div>
+        <div id="dg-cmd"></div>
+        <pre class="dg-console" id="dg-console"></pre>
+      </div>
+    </div>
+    <div class="card" id="dg-server"></div>
+    <div class="card">
+      <div class="card-head"><h2 data-i18n="dg_hist_title">Останні перевірки</h2><button class="btn small hidden" id="dg-hist-clear" type="button" data-i18n="dg_hist_clear">Очистити</button></div>
+      <div class="table-wrap"><table id="dg-history"></table></div>
+    </div>
+  </section>
+
   <section id="tab-settings" class="tab">
     <form id="settings-form" autocomplete="off">
       <div class="grid two">
@@ -602,5 +650,6 @@
 <script src="/static/netmap-icons.js"></script>
 <script src="/static/netmap.js"></script>
 <script src="/static/wifi.js"></script>
+<script src="/static/diag.js"></script>
 </body>
 </html>

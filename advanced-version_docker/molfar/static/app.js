@@ -64,6 +64,7 @@ function rerenderAll() {
   if (currentTab === "events") loadEvents();
   if (currentTab === "wg") { renderWg(); wgSetEditorTitle(); }
   if (window.NetMap) NetMap.rerender();
+  if (window.Diag) Diag.rerender();
   if (window.WifiAir) WifiAir.rerender();
   if (currentTab === "settings") renderExtra();
   setDashEdit(dashEditing);
@@ -92,6 +93,7 @@ function showTab(name) {
   if (name === "events") loadEvents();
   if (name === "wg") loadWg();
   if (window.NetMap) { if (name === "netmap") NetMap.show(); else NetMap.hide(); }
+  if (window.Diag) { if (name === "diag") Diag.show(); else Diag.hide(); }
   if (window.WifiAir) { if (name === "wifi") WifiAir.show(); else WifiAir.hide(); }
   history.replaceState(null, "", "#" + name);
 }
@@ -248,7 +250,7 @@ function renderWifiTile(w) {
       <span class="badge ${lvl(b[k].score)}">${b[k].score}</span></div>` : `<div><div class="label">${name}</div><div class="value muted">—</div></div>`;
   const line = w.scanning ? t("lan_scanning") : w.last ? t("wf_tile_line", { n: w.networks, ago: fmtAgo(Math.round(Date.now() / 1000 - w.last)) })
     : t("wf_tile_never");
-  el.innerHTML = `<div class="muted small">${t("wf_tile_best")}</div><div class="lan-counts wf-tile">${one("2.4", "2.4 ГГц")}${one("5", "5 ГГц")}</div><div class="muted small">${line}</div>`;
+  el.innerHTML = `<div class="muted small">${t("wf_tile_best")}</div><div class="lan-counts wf-tile">${one("2.4", t("band_2_4"))}${one("5", t("band_5"))}</div><div class="muted small">${line}</div>`;
 }
 
 function renderIsp(st) {

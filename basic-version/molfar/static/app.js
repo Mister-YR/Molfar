@@ -63,6 +63,7 @@ function rerenderAll() {
   if (currentTab === "events") loadEvents();
   if (currentTab === "wg") { renderWg(); wgSetEditorTitle(); }
   if (window.NetMap) NetMap.rerender();
+  if (window.Diag) Diag.rerender();
   if (currentTab === "settings") renderExtra();
   setDashEdit(dashEditing);
 }
@@ -88,6 +89,7 @@ function showTab(name) {
   if (name === "events") loadEvents();
   if (name === "wg") loadWg();
   if (window.NetMap) { if (name === "netmap") NetMap.show(); else NetMap.hide(); }
+  if (window.Diag) { if (name === "diag") Diag.show(); else Diag.hide(); }
   history.replaceState(null, "", "#" + name);
 }
 $("#tabs").addEventListener("click", (e) => {

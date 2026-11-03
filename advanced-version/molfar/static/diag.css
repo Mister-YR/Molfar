@@ -1,0 +1,86 @@
+/* Вкладка «Діагностика» */
+#dg-tools { flex-wrap: wrap; }
+.dg-grid { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 16px; margin-bottom: 16px; align-items: start; }
+.dg-grid > .card { margin: 0; }
+@media (max-width: 900px) { .dg-grid { grid-template-columns: 1fr; } }
+
+#dg-form { display: flex; flex-direction: column; gap: 10px; }
+#dg-fields { display: flex; flex-direction: column; gap: 10px; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 480px) { .row3 { grid-template-columns: 1fr 1fr; } }
+.dg-host input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+#dg-form-hint { font-size: 12px; }
+#dg-form-hint code, .dg-howto code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.dg-actions { display: flex; gap: 8px; align-items: center; }
+.dg-actions .btn.primary { min-width: 120px; }
+
+.dg-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip {
+  font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 999px; cursor: pointer;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+}
+.chip:hover { border-color: var(--muted); }
+.dg-chips > .muted { margin-right: 2px; }
+
+#dg-out .card-head { flex-wrap: wrap; }
+#dg-out-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.dg-head-r { display: flex; gap: 8px; align-items: center; }
+.dg-cmdline, #dg-cmd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--muted);
+  margin: 0 0 6px; white-space: pre-wrap; word-break: break-all;
+}
+.dg-console {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.5;
+  background: color-mix(in srgb, var(--bg) 70%, #000); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 0;
+  min-height: 140px; max-height: 420px; overflow: auto; white-space: pre; tab-size: 8;
+}
+.dg-console.small { font-size: 11.5px; max-height: 260px; min-height: 0; }
+@media (prefers-color-scheme: light) { .dg-console { background: #0f1720; color: #dbe4ee; border-color: #0f1720; } }
+
+#dg-result:not(:empty) { margin-bottom: 12px; }
+.dg-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.dg-tile { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; border-left: 3px solid var(--border); }
+.dg-tile.ok { border-left-color: var(--ok); }
+.dg-tile.warn { border-left-color: var(--warn); }
+.dg-tile.bad { border-left-color: var(--bad); }
+.dg-big { font-size: 24px; font-weight: 650; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.dg-big small { font-size: 13px; font-weight: 500; color: var(--muted); }
+.dg-mid { font-size: 15px; font-weight: 500; }
+.dg-spark { width: 100%; height: 40px; display: block; }
+.dg-spark rect { fill: var(--c1); opacity: .8; }
+.dg-line { margin-bottom: 8px; }
+
+table.dg-hops td { vertical-align: top; white-space: normal; }
+table.dg-hops td.num { white-space: nowrap; }
+td.ok { color: var(--ok); } td.warn { color: var(--warn); } td.bad { color: var(--bad); }
+.dg-barcell { width: 30%; min-width: 80px; }
+.dg-bar { height: 8px; border-radius: 4px; background: var(--ok); margin-top: 6px; }
+.dg-bar.warn { background: var(--warn); } .dg-bar.bad { background: var(--bad); }
+
+.dg-answers { margin: 0; padding-left: 18px; }
+.dg-answers li { margin: 2px 0; word-break: break-all; }
+
+.dg-telnet { border-radius: 10px; padding: 14px 16px; border: 1px solid var(--border); background: var(--panel-2); margin-bottom: 10px; border-left: 4px solid var(--border); }
+.dg-telnet.ok { border-left-color: var(--ok); } .dg-telnet.ok .dg-big { color: var(--ok); }
+.dg-telnet.warn { border-left-color: var(--warn); } .dg-telnet.warn .dg-big { color: var(--warn); }
+.dg-telnet.bad { border-left-color: var(--bad); } .dg-telnet.bad .dg-big { color: var(--bad); }
+.dg-banner { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin: 4px 0 0; white-space: pre-wrap; }
+
+.dg-chart { position: relative; height: 220px; }
+.dg-progress { height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; margin-bottom: 10px; border: 1px solid var(--border); }
+.dg-progress > div { height: 100%; width: 0; background: var(--accent); transition: width .8s linear; }
+
+.dg-spin { display: inline-block; width: 9px; height: 9px; margin-right: 6px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -1px; animation: dg-spin .8s linear infinite; }
+@keyframes dg-spin { to { transform: rotate(360deg); } }
+
+.dg-srv-row { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; margin: 12px 0; }
+.dg-srv-row label.check { padding-bottom: 6px; }
+.dg-srv-row input[type=number] { width: 110px; }
+.dg-howto { margin: 8px 0 12px; }
+.dg-howto pre { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin: 4px 0; overflow-x: auto; color: var(--text); white-space: pre; }
+.dg-log summary { cursor: pointer; margin: 8px 0 6px; }
+#dg-history tr[data-id] { cursor: pointer; }
+#dg-history tr[data-id]:hover td { background: var(--panel-2); }
+#dg-history td { white-space: normal; }
+#dg-history td:first-child { white-space: nowrap; }

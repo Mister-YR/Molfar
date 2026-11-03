@@ -35,14 +35,19 @@ CORE_PKGS=(
   unzip                              # розпакування оновлень molfar.zip
   arp-scan                           # мапа мережі: пошук пристроїв у локальній мережі
 )
-# Мережеві утиліти для діагностики (ставляться «за можливості», помилка не зупиняє встановлення)
+# Вкладка «Діагностика» — ставляться завжди (помилка окремого пакета не зупиняє встановлення).
+# Формат «пакет|запасний пакет»: у Debian 13 telnet — це inetutils-telnet.
+DIAG_PKGS=(
+  traceroute                  # traceroute (UDP / ICMP / TCP)
+  "dnsutils|bind9-dnsutils"   # nslookup, dig
+  "telnet|inetutils-telnet"   # перевірка TCP-портів
+  iperf3                      # пропускна здатність мережі (клієнт і сервер)
+)
+# Додаткові мережеві утиліти (ставляться «за можливості», помилка не зупиняє встановлення)
 EXTRA_PKGS=(
-  dnsutils        # dig, nslookup
-  traceroute      # traceroute
   mtr-tiny        # mtr — пінг + трасування в реальному часі
   net-tools       # netstat, ifconfig, route
   ethtool         # швидкість/дуплекс Ethernet-порту
-  iperf3          # тест швидкості в локальній мережі / через тунель
   tcpdump         # перехоплення пакетів
   iftop nload     # трафік по з'єднаннях / по інтерфейсу наживо
   sqlite3         # перегляд бази Мольфара
@@ -139,6 +144,20 @@ echo "==> Обов'язкові пакети: ${CORE_PKGS[*]}"
 apt-get install -y -qq --no-install-recommends "${CORE_PKGS[@]}" >/dev/null
 setup_timesync
 
+echo "==> Інструменти діагностики: traceroute, nslookup, telnet, iperf3"
+# iperf3 при встановленні питає, чи запускати його як системну службу — ні: сервером керує Мольфар
+echo "iperf3 iperf3/start_daemon boolean false" | debconf-set-selections 2>/dev/null || true
+for spec in "${DIAG_PKGS[@]}"; do
+  ok_pkg=""
+  IFS='|' read -ra alts <<<"$spec"
+  for p in "${alts[@]}"; do
+    if has_pkg "$p" || apt-get install -y -qq --no-install-recommends "$p" >/dev/null 2>&1; then ok_pkg=$p; break; fi
+  done
+  [ -n "$ok_pkg" ] || echo "    !! не вдалося встановити ${spec%%|*} — відповідний інструмент у «Діагностиці» буде недоступний"
+done
+# iperf3 не має запускатись як сервіс сам по собі (сервер вмикається у вкладці «Діагностика»)
+systemctl disable --now iperf3 >/dev/null 2>&1 || true
+
 if [ "$EXTRA_TOOLS" != "0" ]; then
   echo "==> Мережеві утиліти: ${EXTRA_PKGS[*]}"
   if ! apt-get install -y -qq --no-install-recommends "${EXTRA_PKGS[@]}" >/dev/null 2>&1; then
@@ -146,8 +165,6 @@ if [ "$EXTRA_TOOLS" != "0" ]; then
       apt-get install -y -qq --no-install-recommends "$p" >/dev/null 2>&1 || echo "    !! не вдалося встановити $p"
     done
   fi
-  # iperf3 не має запускатись як сервіс сам по собі
-  systemctl disable --now iperf3 >/dev/null 2>&1 || true
 fi
 
 # ---------- 3. WireGuard ----------
@@ -313,8 +330,9 @@ if [ -d /sys/module/wireguard ]; then ok "модуль wireguard" "завант�
 if speedtest --version 2>/dev/null | grep -q Ookla; then ok "speedtest (Ookla)" "$(command -v speedtest)"
 else bad "speedtest (Ookla)" "буде запасний speedtest-cli"; fi
 sudo -u "$SVC_USER" sudo -n /usr/local/sbin/molfar-wg list >/dev/null 2>&1 && ok "керування WireGuard" "molfar-wg через sudo" || bad "керування WireGuard" "sudo -n molfar-wg не працює"
+for t in traceroute nslookup telnet iperf3; do chk "$t (діагностика)" "$t" "не встановлено — вкладка «Діагностика» без нього"; done
 if [ "$EXTRA_TOOLS" != "0" ]; then
-  for t in dig traceroute mtr netstat ethtool iperf3 tcpdump iftop nload sqlite3; do chk "$t" "$t" "не встановлено"; done
+  for t in dig mtr netstat ethtool tcpdump iftop nload sqlite3; do chk "$t" "$t" "не встановлено"; done
 fi
 
 IP=$(hostname -I | awk '{print $1}')

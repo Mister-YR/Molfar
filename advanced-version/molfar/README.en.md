@@ -15,6 +15,7 @@ A lightweight service (Python + SQLite, ~40 MB RAM) that:
 - **WireGuard** — a tab to manage profiles: add (paste / upload a `.conf`, or use the wizard with key generation), edit, bring tunnels up/down, autostart, delete. Status (handshake, traffic) is also on the Overview.
 - **Network map** — a tab with a tree of the devices on your local network: Internet → router → switches / access points → devices. Every device is clickable (IP, MAC, vendor, name, connection, its own events). The map is editable: drag devices, change what they are connected to, their type and network segment, delete them or add your own. A device going offline is written to the map log (kept for 400 days); after 7 days offline it is removed from the map (never the router or Molfar itself). The Overview has a *Local network* card; Telegram can optionally alert about new devices.
 - **Wi-Fi air** — scans nearby Wi-Fi networks, draws a spectrum and a waterfall (where the air is clean / noisy) and recommends the best router channel for 2.4 and 5 GHz. An Overview card shows the cleanest channels.
+- **Diagnostics** — a separate tab with network tools right in the browser: **ping**, **traceroute** (UDP / ICMP / TCP), **nslookup** (A, MX, TXT…, any DNS server), **telnet** (is a TCP port open and what does it say) and **iperf3** — throughput to another device; Molfar can also run an iperf3 server itself. Live output, a readable summary and a run history.
 - **Two languages** — Ukrainian and English (UK/EN switch in the header or *Settings → General*). The language applies to the web UI, Telegram alerts and the event log.
 - Password-protected web UI (password can be changed in Settings), mobile-friendly, light and dark themes.
 
@@ -32,7 +33,7 @@ The script prepares the system itself:
 
 1. **Clock** — sets the `Europe/Kyiv` timezone and enables NTP; if NTP does not answer, takes the time from an HTTP `Date` header (the Zero 3 has no RTC battery, and apt refuses to work with a wrong clock).
 2. **Required packages** — `python3`, `python3-venv`, `python3-pip`, `iputils-ping`, `iproute2`, `wireguard-tools`, `nftables` (needed by wg-quick for profiles with `AllowedIPs = 0.0.0.0/0`), `sudo`, `curl`, `ca-certificates`, `unzip`, `arp-scan` (network map), plus the `systemd-timesyncd` NTP client (unless chrony/ntp is present).
-3. **Network tools** — `dig`/`nslookup`, `traceroute`, `mtr`, `netstat`/`ifconfig`, `ethtool`, `iperf3`, `tcpdump`, `iftop`, `nload`, `sqlite3`, `fake-hwclock`, `avahi-utils` (device names on the map). Best effort: a missing package does not stop the install.
+3. **Diagnostic tools** — `traceroute`, `nslookup`/`dig` (`dnsutils`), `telnet`, `iperf3` for the Diagnostics tab — always installed. **Network tools** — `mtr`, `netstat`/`ifconfig`, `ethtool`, `tcpdump`, `iftop`, `nload`, `sqlite3`, `fake-hwclock`, `avahi-utils` (device names on the map) — best effort: a missing package does not stop the install.
 4. **WireGuard** — checks the kernel module; for `DNS =` in profiles sets up `resolvconf` (via `systemd-resolved` if it is running, otherwise installs `openresolv`).
 5. **IPv4 forwarding** — `net.ipv4.ip_forward=1`, persistently: `/etc/sysctl.d/99-zz-molfar-forward.conf` (on every boot) and the `molfar.service.d/ip-forward.conf` drop-in (on every Molfar start). Needed to reach other LAN hosts through Molfar from the VPN (plus a return route on the LAN router: `<VPN network> → Molfar's IP`; do not put Molfar's own LAN into its `AllowedIPs`).
 6. Ookla Speedtest CLI, the `molfar` user, the systemd service, sudo rules — and a ✓/✗ check table at the end.
@@ -126,6 +127,26 @@ rfkill list                                                                     
 ```
 
 Settings: **Settings → Wi-Fi air** (schedule, interval, my networks, interface, history retention in days; 30 by default).
+
+## Diagnostics
+
+The **Diagnostics** tab runs network tools on Molfar itself (i.e. from the network it sits in), no SSH needed:
+
+| Tool | What for | Options |
+|---|---|---|
+| **Ping** | loss, latency, jitter to any address — a one-off check, not written to the monitoring history | packets (1–100), size, IPv4/IPv6 |
+| **Traceroute** | which hops the packets take and where latency or loss appears | **UDP** / **ICMP** / **TCP** (port) mode, max hops, hop names |
+| **NSLookup** | what DNS answers; compare your router's DNS with e.g. `1.1.1.1` | record type A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, SRV, CAA; DNS server |
+| **Telnet** | is a TCP port open (SSH, mail, web server, camera) and what the server says first | port (quick buttons 22, 25, 80, 443…), how long to wait |
+| **iperf3** | real throughput between Molfar and an iperf3 server (PC, NAS, router, VPS, the far end of a VPN) | port, duration, streams (1–16), direction ↑ / ↓ / ⇅, TCP or UDP at a set rate |
+
+- **Live output** — a long traceroute appears line by line; *Stop* aborts the check. Above the output is a summary: loss / latency / jitter tiles, a traceroute hop table with latency bars, the port state ("open" / "refused" / "no response — filtered"), and for iperf3 the rate, retransmits (TCP) or loss and jitter (UDP), CPU load and a per-second chart.
+- **iperf3 server on Molfar** — a switch in the same tab: Molfar listens on a port (`5201` by default) so you can run the test from a laptop or phone (`iperf3 -c <Molfar IP>`; `-R` for the reverse direction). This shows Wi-Fi or VPN speed to Molfar itself. Optional auto-off (15 min / 1 h / 4 h / 24 h); the state survives restarts. Recent clients and the server log are shown there too. The server is run by Molfar (the system `iperf3` service stays disabled).
+- **History** — the last 200 runs with a summary; click a row to open the saved output.
+- **Safety** — the target is accepted only as an IP address or host name, every option has limits, and commands run without a shell. Up to 3 checks at once, one iperf3 test at a time.
+- On an Orange Pi Zero 3 the CPU may become the limit for iperf3 on gigabit — if the CPU is near 100% during the test the tab warns about it; try 2–4 streams.
+
+`install.sh` always installs `traceroute`, `nslookup` (`dnsutils`), `telnet` and `iperf3`. API: `GET /api/diag`, `POST /api/diag/run` (`{"tool":"traceroute","host":"1.1.1.1","mode":"icmp"}`), `GET /api/diag/jobs/{id}?since=N`, `POST /api/diag/jobs/{id}/stop`, `POST /api/diag/iperf/server` (`{"enabled":true,"port":5201,"auto_off_min":60}`).
 
 ## Telegram
 
@@ -245,6 +266,7 @@ molfar/
 │   ├── netscan.py          arp-scan / ping + ARP, vendor by MAC
 │   ├── wifi.py             Wi-Fi air: iw parsing, spectrum model, channel scores
 │   ├── probes.py           ping / speedtest
+│   ├── diag.py             Diagnostics: ping, traceroute, nslookup, telnet, iperf3 (client and server)
 │   ├── db.py               SQLite, default settings
 │   ├── sysinfo.py          temperature, IPs, WireGuard
 │   ├── wgmgr.py            molfar-wg calls
@@ -252,5 +274,6 @@ molfar/
 └── static/                 web UI (Chart.js bundled, no internet needed for the UI)
     ├── netmap.js, netmap.css, netmap-icons.js   the Network map tab
     ├── wifi.js, wifi.css   the Wi-Fi air tab
+    ├── diag.js, diag.css   Diagnostics tab
     └── i18n.js             UI dictionary uk/en
 ```
