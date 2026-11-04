@@ -1,7 +1,7 @@
 [Українська](README.md) | **English**
 
 # Molfar
-![rewiev](/docs/screenshots/01-overview.png)
+![review](/docs/screenshots/01-overview.png)
 **Molfar** is a small monitoring tool for your home or office network. You install it on a single-board
 computer (for example, an Orange Pi Zero 3) or in a virtual machine, and it keeps an eye on your internet
 around the clock: whether it's up, how fast it is and how stable it is. Everything is shown in a web
@@ -11,7 +11,7 @@ interface you can open from your phone or computer, and Molfar notifies you abou
 
 Your ISP promises 100 Mbps, but videos keep buffering? The internet "drops out sometimes", but nobody knows
 exactly when? Molfar answers these questions with numbers:
-![rewiev](/docs/screenshots/02-history-week.png)
+![review](/docs/screenshots/02-history-week.png)
 - **Speed** — every night, or on a schedule, it runs a series of speed tests and calculates the average download and upload speed.
 - **Ping and jitter** — it constantly pings `1.1.1.1`, `8.8.8.8` and your own addresses: latency, packet loss, stability.
 - **History** — charts for the day, week, month and year, plus CSV export (handy for showing to your ISP).
@@ -20,7 +20,7 @@ exactly when? Molfar answers these questions with numbers:
 - **Network map** — which devices are on your network and when new ones appear.
 - **WireGuard** — manage VPN tunnels so you can reach Molfar (and your home network) from anywhere.
 - **Diagnostics** — ping, traceroute, nslookup, telnet (TCP port check) and iperf3 throughput tests right from the web interface; Molfar can also act as an iperf3 server.
-![rewiev](/docs/screenshots/disgnostics-result.png)
+![review](/docs/screenshots/disgnostics-result.png)
 Molfar is written in Python, stores its data in a single SQLite file, and the interface is available in Ukrainian and English.
 
 ## What's in the repository
