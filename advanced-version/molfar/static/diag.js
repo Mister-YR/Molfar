@@ -271,37 +271,69 @@ function drawChart(r) {
   });
 }
 
-/* ------------------------------------------------------------ iperf3-сервер */
-function renderServer() {
-  const s = info.server, el = q("#dg-server");
-  const have = info.tools.iperf3;
-  const ips = (info.addresses || []).filter((a) => !a.iface.startsWith("docker") && !a.iface.startsWith("br-")).map((a) => a.addr.split("/")[0]);
-  const ip = ips[0] || "IP";
-  const state = !have ? `<span class="badge bad">${t("dg_srv_noiperf")}</span>`
-    : s.running ? `<span class="badge ok">${t("dg_srv_on", { port: s.port })}</span>`
-    : s.enabled ? `<span class="badge warn">${t("dg_srv_starting")}</span>` : `<span class="badge">${t("dg_srv_off")}</span>`;
-  const offTxt = s.off_at ? t("dg_srv_off_at", { time: fmtTime(s.off_at, false) }) : "";
-  el.innerHTML = `<div class="card-head"><h2>${t("dg_srv_title")}</h2><div>${state}</div></div>
+/* ------------------------------------------------------------ iperf3-сервер
+   Картка будується один раз; періодичне оновлення (кожні 10 с) змінює лише дані всередині —
+   тож розгорнутий журнал, його прокрутка і поле, яке саме редагують, не скидаються. */
+let srvDirty = false;   // користувач змінив порт / автовимкнення, але ще не застосував
+
+function buildServer() {
+  const el = q("#dg-server");
+  el.innerHTML = `<div class="card-head"><h2>${t("dg_srv_title")}</h2><div id="dg-srv-state"></div></div>
     <div class="muted small">${t("dg_srv_note")}</div>
     <form id="dg-srv-form" class="dg-srv-row">
-      <label class="check"><span class="switch"><input type="checkbox" name="enabled"${s.enabled ? " checked" : ""}${have ? "" : " disabled"}><span></span></span> <span>${t("dg_srv_enable")}</span></label>
-      <label><span>${t("dg_port")}</span><input type="number" name="port" min="1024" max="65535" value="${s.port}"></label>
-      <label><span>${t("dg_srv_autooff")}</span><select name="auto_off_min">${AUTO_OFF.map((m) => `<option value="${m}"${m === s.auto_off_min ? " selected" : ""}>${m ? t("dg_srv_after", { m: m >= 60 ? (m / 60) + " " + t("dg_hours") : m + " " + t("dg_min") }) : t("dg_srv_never")}</option>`).join("")}</select></label>
-      <button class="btn small" type="submit"${have ? "" : " disabled"}>${t("apply")}</button>
+      <label class="check"><span class="switch"><input type="checkbox" name="enabled"><span></span></span> <span>${t("dg_srv_enable")}</span></label>
+      <label><span>${t("dg_port")}</span><input type="number" name="port" min="1024" max="65535"></label>
+      <label><span>${t("dg_srv_autooff")}</span><select name="auto_off_min">${AUTO_OFF.map((m) => `<option value="${m}">${m ? t("dg_srv_after", { m: m >= 60 ? (m / 60) + " " + t("dg_hours") : m + " " + t("dg_min") }) : t("dg_srv_never")}</option>`).join("")}</select></label>
+      <button class="btn small" type="submit">${t("apply")}</button>
     </form>
-    ${s.error ? `<div class="notice">${esc(errText(new Error(s.error)))}</div>` : ""}
-    ${offTxt ? `<div class="muted small">${offTxt}</div>` : ""}
-    <div class="dg-howto">
-      <div class="muted small">${t("dg_srv_howto")}</div>
+    <div id="dg-srv-msg"></div>
+    <div class="dg-howto" id="dg-srv-howto"></div>
+    <div id="dg-srv-clients"></div>
+    <details class="dg-log hidden" id="dg-srv-logbox"><summary class="muted small">${t("dg_srv_log")}</summary><pre class="dg-console small" id="dg-srv-log"></pre></details>`;
+  const f = q("#dg-srv-form");
+  f.onsubmit = saveServer;
+  f.enabled.onchange = saveServer;
+  f.port.oninput = f.auto_off_min.onchange = () => { srvDirty = true; };
+}
+
+function setHTML(el, html) { if (el.innerHTML !== html) el.innerHTML = html; }   // не чіпати DOM без змін
+
+function renderServer() {
+  if (!q("#dg-srv-form")) buildServer();
+  const s = info.server, have = info.tools.iperf3, f = q("#dg-srv-form");
+  const ips = (info.addresses || []).filter((a) => !a.iface.startsWith("docker") && !a.iface.startsWith("br-")).map((a) => a.addr.split("/")[0]);
+  const ip = ips[0] || "IP";
+  setHTML(q("#dg-srv-state"), !have ? `<span class="badge bad">${t("dg_srv_noiperf")}</span>`
+    : s.running ? `<span class="badge ok">${t("dg_srv_on", { port: s.port })}</span>`
+    : s.enabled ? `<span class="badge warn">${t("dg_srv_starting")}</span>` : `<span class="badge">${t("dg_srv_off")}</span>`);
+  // форма: перемикач — завжди за станом сервера; поля — лише якщо їх зараз не редагують
+  f.enabled.checked = !!s.enabled;
+  f.enabled.disabled = !have;
+  f.querySelector("button[type=submit]").disabled = !have;
+  const editing = f.contains(document.activeElement) && document.activeElement !== f.enabled;
+  if (!srvDirty && !editing) {
+    f.port.value = s.port;
+    f.auto_off_min.value = String(s.auto_off_min || 0);
+  }
+  const offTxt = s.off_at ? t("dg_srv_off_at", { time: fmtTime(s.off_at, false) }) : "";
+  setHTML(q("#dg-srv-msg"), (s.error ? `<div class="notice">${esc(errText(new Error(s.error)))}</div>` : "")
+    + (offTxt ? `<div class="muted small">${offTxt}</div>` : ""));
+  setHTML(q("#dg-srv-howto"), `<div class="muted small">${t("dg_srv_howto")}</div>
       <pre class="dg-cmdline">iperf3 -c ${esc(ip)} -p ${s.port}          <span class="muted"># ${t("dg_dir_up_from")}</span>
 iperf3 -c ${esc(ip)} -p ${s.port} -R       <span class="muted"># ${t("dg_dir_down_from")}</span></pre>
-      ${ips.length > 1 ? `<div class="muted small">${t("dg_srv_addrs")}: ${ips.map((x) => `<span class="mono">${esc(x)}</span>`).join(", ")}</div>` : ""}
-    </div>
-    ${s.clients && s.clients.length ? `<div class="table-wrap"><table><thead><tr><th>${t("dg_srv_client")}</th><th>${t("dg_time")}</th><th class="num">${t("dg_srv_rate")}</th></tr></thead><tbody>
-      ${s.clients.map((c) => `<tr><td class="mono">${esc(c.ip)}</td><td>${fmtTime(c.ts)}</td><td class="num">${c.rate == null ? "—" : fmtMbps(c.rate)}</td></tr>`).join("")}</tbody></table></div>` : ""}
-    ${s.log && s.log.length ? `<details class="dg-log"><summary class="muted small">${t("dg_srv_log")}</summary><pre class="dg-console small">${esc(s.log.join("\n"))}</pre></details>` : ""}`;
-  q("#dg-srv-form").onsubmit = saveServer;
-  q("#dg-srv-form [name=enabled]").onchange = saveServer;
+      ${ips.length > 1 ? `<div class="muted small">${t("dg_srv_addrs")}: ${ips.map((x) => `<span class="mono">${esc(x)}</span>`).join(", ")}</div>` : ""}`);
+  setHTML(q("#dg-srv-clients"), s.clients && s.clients.length ? `<div class="table-wrap"><table><thead><tr><th>${t("dg_srv_client")}</th><th>${t("dg_time")}</th><th class="num">${t("dg_srv_rate")}</th></tr></thead><tbody>
+      ${s.clients.map((c) => `<tr><td class="mono">${esc(c.ip)}</td><td>${fmtTime(c.ts)}</td><td class="num">${c.rate == null ? "—" : fmtMbps(c.rate)}</td></tr>`).join("")}</tbody></table></div>` : "");
+  // журнал: оновлюємо текст, зберігаючи розгортання й прокрутку (якщо стояли внизу — лишаємось унизу)
+  const box = q("#dg-srv-logbox"), pre = q("#dg-srv-log");
+  const txt = (s.log || []).join("\n");
+  box.classList.toggle("hidden", !txt);
+  if (pre.textContent !== txt) {
+    const atBottom = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 8;
+    const top = pre.scrollTop;
+    pre.textContent = txt;
+    pre.scrollTop = atBottom ? pre.scrollHeight : top;
+  }
 }
 
 async function saveServer(e) {
@@ -310,6 +342,8 @@ async function saveServer(e) {
   const body = { enabled: f.enabled.checked, port: Number(f.port.value), auto_off_min: Number(f.auto_off_min.value) };
   try {
     info.server = await post("/api/diag/iperf/server", body);
+    srvDirty = false;
+    if (document.activeElement && f.contains(document.activeElement)) document.activeElement.blur();
     toast(t(body.enabled ? "dg_srv_toast_on" : "dg_srv_toast_off", { port: body.port }));
   } catch (err) { toast(errText(err), true); }
   renderServer();
@@ -401,7 +435,7 @@ window.Diag = {
   rerender() {
     if (!q("#dg-fields").innerHTML) return;
     readForm(); renderForm();
-    if (info) { renderServer(); renderHistory(); }
+    if (info) { q("#dg-server").innerHTML = ""; renderServer(); renderHistory(); }
     if (job) { shown = null; renderJob(true); }
   },
 };
