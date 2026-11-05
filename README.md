@@ -7,8 +7,10 @@ computer (for example, an Orange Pi Zero 3) or in a virtual machine, and it keep
 around the clock: whether it's up, how fast it is and how stable it is. Everything is shown in a web
 interface you can open from your phone or computer, and Molfar notifies you about problems in Telegram on its own.
 
-## Why
+## Architechure
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Why
 Your ISP promises 100 Mbps, but videos keep buffering? The internet "drops out sometimes", but nobody knows
 exactly when? Molfar answers these questions with numbers:
 ![review](/docs/screenshots/02-history-week.png)
@@ -24,7 +26,6 @@ exactly when? Molfar answers these questions with numbers:
 Molfar is written in Python, stores its data in a single SQLite file, and the interface is available in Ukrainian and English.
 
 ## What's in the repository
-
 | Folder | What it is | Who it's for |
 |---|---|---|
 | [`basic-version/`](basic-version/) | **Basic version**: speed test, ping, history, Telegram, ISP, network map, WireGuard, Diagnostics. The lightest one, with minimal dependencies. | Those who just want to keep track of their internet quality. |
